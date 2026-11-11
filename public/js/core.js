@@ -102,7 +102,11 @@ const emitP = (ev, data) => new Promise((res, rej) => socket.emit(ev, data, (r) 
 async function api(method, url, body) {
   const r = await fetch(url, { method, headers: body ? { 'Content-Type': 'application/json' } : {}, body: body ? JSON.stringify(body) : undefined });
   const d = await r.json().catch(() => ({}));
-  if (!r.ok) throw new Error(d.error || 'Algo deu errado. Tente de novo.');
+  if (!r.ok) {
+    // rota que não existe: a página é mais nova que o servidor (código atualizado sem reiniciar o Junta)
+    if (r.status === 404 && !d.error) throw new Error('O servidor do Junta está desatualizado: feche a janela do Junta e abra o iniciar de novo.');
+    throw new Error(d.error || 'Algo deu errado. Tente de novo.');
+  }
   return d;
 }
 
