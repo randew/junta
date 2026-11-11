@@ -463,9 +463,16 @@ mark { background: color-mix(in srgb, var(--amber) 45%, transparent); color: var
 @media (max-width: 1100px) {
   .search-panel { position: fixed; top: calc(53px + env(safe-area-inset-top, 0px)); right: 0; bottom: 0; z-index: 36; width: min(360px, 100vw); box-shadow: -12px 0 32px rgb(0 0 0 / .4); }
 }
+/* lupa no lugar da caixa de busca, só no celular */
+.search-toggle, .search-collapse { display: none; }
+.topbar { position: relative; }
 @media (max-width: 760px) {
-  .search-box input { width: 110px; }
-  .search-box input:focus { width: 160px; }
+  .search-toggle { display: inline-grid; margin-left: auto; }
+  .search-box { display: none; }
+  .topbar.search-open .search-box { display: flex; position: absolute; inset: 0; z-index: 6; margin: 0; gap: 4px; padding: 0 8px 0 max(12px, env(safe-area-inset-left, 0px)); background: var(--ink-2); }
+  .topbar.search-open .search-box svg { left: 22px; }
+  .topbar.search-open .search-box input, .topbar.search-open .search-box input:focus { flex: 1; width: auto; min-width: 0; padding: 9px 10px 9px 34px; }
+  .topbar.search-open .search-collapse { display: inline-grid; font-size: 22px; }
 }
 
 /* ---------- mensagens: menção, salto, novas ---------- */

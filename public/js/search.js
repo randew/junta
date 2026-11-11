@@ -3,14 +3,25 @@
 
 const searchInput = $('searchInput');
 function closeSearch() { $('searchPanel').hidden = true; $('app').classList.remove('searching'); }
-$('searchClose').onclick = () => { closeSearch(); searchInput.value = ''; };
+
+// celular: a busca fica atrás da lupa e, aberta, ocupa a barra do topo
+const topbar = document.querySelector('.topbar');
+function openSearchBar() { topbar.classList.add('search-open'); $('searchToggle').setAttribute('aria-expanded', 'true'); searchInput.focus(); }
+function closeSearchBar() { topbar.classList.remove('search-open'); $('searchToggle').setAttribute('aria-expanded', 'false'); }
+$('searchToggle').onclick = openSearchBar;
+$('searchCollapse').onclick = () => { searchInput.value = ''; closeSearch(); closeSearchBar(); };
+// tocou fora com a busca vazia: recolhe
+searchInput.addEventListener('blur', () => setTimeout(() => {
+  if (!searchInput.value.trim() && $('searchPanel').hidden && document.activeElement !== searchInput) closeSearchBar();
+}, 150));
+$('searchClose').onclick = () => { closeSearch(); searchInput.value = ''; closeSearchBar(); };
 searchInput.addEventListener('keydown', (e) => {
-  if (e.key === 'Escape') { searchInput.value = ''; closeSearch(); searchInput.blur(); }
+  if (e.key === 'Escape') { searchInput.value = ''; closeSearch(); searchInput.blur(); closeSearchBar(); }
   if (e.key === 'Enter') { e.preventDefault(); runSearch(); }
 });
 // Ctrl+F / Ctrl+K: foca a busca
 document.addEventListener('keydown', (e) => {
-  if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'f') && $('auth').hidden) { e.preventDefault(); searchInput.focus(); searchInput.select(); }
+  if ((e.ctrlKey || e.metaKey) && (e.key === 'k' || e.key === 'f') && $('auth').hidden) { e.preventDefault(); openSearchBar(); searchInput.select(); }
 });
 
 async function runSearch() {
