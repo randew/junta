@@ -1,6 +1,6 @@
 # Junta
 
-Chat em tempo real no estilo Discord: servidores, canais de texto, salas de voz e **compartilhamento de tela**.
+Chat em tempo real no estilo Discord para um grupo de amigos: servidores, canais de texto, mensagens diretas, salas de voz com câmera e **compartilhamento de tela**.
 
 ## Rodar no seu computador
 
@@ -19,82 +19,104 @@ Abra http://localhost:3000. Para testar sozinho, abra uma segunda aba (ou outro 
 - **`iniciar-com-amigos.bat`**: o mesmo, e abre uma segunda janela com o link público para mandar aos amigos.
 - **`iniciar.command`**: atalho para Mac ou Linux (`./iniciar.command amigos` para também criar o link).
 
-Se a pasta tiver sido baixada com `git clone`, os atalhos baixam a versão mais nova (`git pull`) antes de iniciar.
-
-## Contas e convites
-
-- Na primeira vez que o servidor liga, o terminal mostra um **código de convite**. Abra o Junta, clique em **Criar conta** e use esse código. **Quem criar a primeira conta vira o dono do Junta.**
-- Para chamar amigos: clique no seu nome (canto inferior esquerdo) → **Convidar amigos** → **Copiar convite**. O código é pedido só na criação da conta. **Gerar código novo** invalida o anterior, útil se ele vazou.
-- Só o dono cria e apaga servidores e canais, e pode apagar qualquer mensagem. Cada pessoa edita e apaga as próprias mensagens (passe o mouse sobre a mensagem, ou aperte **↑** com a caixa de texto vazia para editar a última).
-- O login fica salvo por 60 dias. **Sair da conta** fica no mesmo menu do seu nome.
-- O lápis ao lado do seu nome troca o **nome de exibição**; o usuário de login não muda.
-
-## Perfil
-
-O lápis ao lado do seu nome (canto inferior esquerdo) abre o editor de perfil, com prévia ao vivo:
-
-- **Foto de perfil:** escolha uma imagem, arraste e dê zoom para enquadrar. Ela é recortada em 256×256 no próprio navegador antes de ser enviada. GIFs ficam parados.
-- **Nome de exibição** e **apelido** por servidor: o apelido vale só no servidor em que você está; sem apelido, aparece o nome de exibição.
-- **Pronomes**, **status personalizado** (aparece embaixo do seu nome na lista de membros), **sobre mim** (até 190 caracteres) e **cor do perfil**.
-
-Clique na foto ou no nome de alguém, nas mensagens ou na lista de membros, para ver o cartão de perfil da pessoa. As fotos ficam em `dados/avatares/` e só abrem para quem está logado.
-
-## Mensagens e anexos
-
-- Tudo fica salvo na pasta **`dados/`** (banco `junta.db` e arquivos em `anexos/`). Reiniciar o servidor ou atualizar o código não apaga nada.
-- **Backup:** feche o Junta e copie a pasta `dados` para outro lugar. Para restaurar, coloque-a de volta.
-- Anexe pelo clipe, arrastando arquivos para a conversa ou colando uma imagem (Ctrl+V). Até 10 arquivos de 25 MB por mensagem. Imagens, vídeos e áudios aparecem na conversa; o resto vira um cartão para baixar.
-- Os anexos só abrem para quem está logado. Arquivos de página (HTML, SVG etc.) sempre são baixados, nunca abertos no navegador.
-- Role a conversa para cima para carregar mensagens antigas.
+Abra só um deles por vez. Se a pasta tiver sido baixada com `git clone`, os atalhos baixam a versão mais nova (`git pull`) antes de iniciar.
 
 ## Usar com amigos
 
-O navegador só libera microfone e captura de tela em **HTTPS** (ou em `localhost`). Duas opções:
+O navegador só libera microfone, câmera e captura de tela em **HTTPS** (ou em `localhost`). Duas opções:
 
 1. **Túnel rápido** (sem deploy), com o servidor rodando:
    ```bash
    npx cloudflared tunnel --url http://localhost:3000
    ```
    Mande o link `https://...trycloudflare.com` que aparecer.
-2. **Deploy** em Render, Railway ou Fly.io: é um app Node comum, comando de start `npm start`, porta lida de `PORT`.
+2. **Deploy** em Render, Railway ou Fly.io: é um app Node comum, comando de start `npm start`, porta lida de `PORT`. Veja os limites no fim.
 
-## Áudio
+## Contas, convites e administração
 
-No botão **Áudio**, dentro de uma sala de voz:
+- Na primeira vez que o servidor liga, o terminal mostra um **código de convite**. Abra o Junta, clique em **Criar conta** e use esse código. **Quem criar a primeira conta vira o dono do Junta.**
+- Tudo da conta fica no menu do seu nome (canto inferior esquerdo): status, **Notificações**, **Trocar senha**, **Sair da conta** e, para o dono, **Convidar amigos** e **Administração**.
+- **Convidar:** copia o endereço e o código juntos. **Gerar código novo** invalida o anterior.
+- **Administração** (dono):
+  - **Contas:** **Redefinir senha** gera uma senha temporária para você passar à pessoa (ela sai de todos os aparelhos e depois pode trocar em "Trocar senha"). **Remover** tira o acesso na hora, mas mantém as mensagens no histórico; dá para **Restaurar**.
+  - **Backups:** veja a seção abaixo.
+- Só o dono cria e apaga servidores e canais e pode apagar mensagens dos outros nos canais (nunca nas mensagens diretas).
 
-- **Microfone:** escolhe qual usar.
-- **Modo de entrada:** detecção de voz ou **apertar para falar**, com a tecla que você quiser (padrão `V`). Também há um botão na tela para segurar, útil no celular. A tecla só funciona com a aba do Junta em foco.
-- **Supressão de ruído:** IA (RNNoise, roda no próprio navegador), filtro do navegador ou desligada.
-- **Modo música:** desliga filtros e ganho automático e envia em estéreo a 128 kbps.
+## Mensagens
 
-A voz sai em Opus a 64 kbps com correção de perda de pacotes e prioridade sobre a transmissão de tela. O áudio da tela sai em estéreo a 128 kbps.
+- **Formatação:** `**negrito**`, `*itálico*`, `__sublinhado__`, `~~riscado~~`, `||spoiler||`, `` `código` ``, blocos com ` ``` ` e citações começando a linha com `> `.
+- **Menções:** digite `@` e escolha a pessoa (setas + Enter). Quem é mencionado vê a mensagem destacada e recebe aviso.
+- **Responder:** passe o mouse sobre a mensagem → seta de resposta. A citação é clicável e leva até a original. Responder também menciona o autor.
+- **Reagir:** passe o mouse → carinha, ou clique numa reação existente para entrar nela (clicar de novo tira).
+- **Editar e apagar:** pelos botões da mensagem, ou **↑** com a caixa vazia para editar a última.
+- **Prévia de links:** links viram um cartão com título, descrição e imagem. Para não gerar prévia, escreva o link entre `<` e `>`. O servidor nunca acessa endereços da sua rede interna ao buscar prévias.
+- **Anexos:** clipe, arrastar para a conversa ou colar uma imagem (Ctrl+V). Até 10 arquivos de 25 MB por mensagem.
+- **Emojis:** botão de carinha na caixa de mensagem.
 
-**Avisos da sala:** quando alguém entra, sai ou começa a transmitir na sua sala de voz, toca um som curto e aparece um aviso com o nome da pessoa. Dá para desligar ou ajustar o volume em **Áudio**; no modo Não perturbe os sons ficam desligados.
+## Não lidas e notificações
 
-**Volume por pessoa:** clique no bloco de alguém na sala. O áudio de cada transmissão de tela tem um controle próprio, no canto do vídeo. Os ajustes ficam salvos no seu navegador.
+- Canais com mensagens novas ficam em destaque; o número vermelho conta **menções**. Os servidores na barra da esquerda mostram o mesmo, e o título da aba fica `(3) Junta`.
+- Ao abrir uma conversa, aparece uma linha **"Novas mensagens"** onde você parou.
+- **Notificações do sistema:** ligue em menu do seu nome → **Notificações**. Avisam de menções e mensagens diretas quando a aba está em segundo plano. No modo **Não perturbe**, nada de som nem notificação.
 
-## Membros
+## Mensagens diretas
 
-O painel à direita mostra quem está com o Junta aberto, separado entre Online e Ausente, e a sala de voz em que cada pessoa está (em vermelho quando está transmitindo a tela). O botão de pessoas no canto superior direito mostra e esconde o painel.
+- O **J** no topo da barra da esquerda é o início: lá ficam as suas conversas particulares.
+- Para começar: clique em alguém (nas mensagens ou na lista de membros) → **Enviar mensagem**, ou o **+** na lista de conversas.
+- Só as duas pessoas veem as mensagens e os anexos, nem o dono.
 
-Clique no seu nome, no canto inferior esquerdo, para escolher Online, Ausente ou Não perturbe. Com a aba em segundo plano por 5 minutos, o status vira Ausente sozinho e volta ao abrir a aba.
+## Busca
 
-## Como funciona
+- Campo **Buscar** no topo (ou **Ctrl+K**). Procura no servidor aberto, ou nas suas conversas diretas quando você está no início.
+- Ignora acentos e maiúsculas: `reuniao` acha "Reunião". Use `de:usuario` para filtrar por pessoa.
+- Clique num resultado para ir até a mensagem; a barra **"Ir para as mais recentes"** volta ao fim.
 
-- `server.js`: Express + Socket.IO. Contas (senha com hash scrypt, sessão em cookie HttpOnly), mensagens, anexos e a sinalização WebRTC entre quem está na mesma sala de voz.
-- `db.js`: banco SQLite embutido no Node, em `dados/junta.db`. A pasta pode ser trocada com a variável `JUNTA_DATA`.
-- `public/app.js`: interface e WebRTC em malha (cada pessoa conecta direto com cada outra). Áudio e tela vão ponta a ponta, sem passar pelo servidor.
-- Tela compartilhada com três predefinições, escolhidas ao clicar em **Compartilhar tela**:
+## Perfil
+
+O lápis ao lado do seu nome abre o editor de perfil, com prévia ao vivo: **foto** (arraste e dê zoom para enquadrar), **nome de exibição**, **apelido** neste servidor, **pronomes**, **status personalizado**, **sobre mim** e **cor do perfil**. Clique na foto ou no nome de alguém para ver o cartão de perfil.
+
+## Voz, tela e câmera
+
+- **Câmera:** botão **Câmera** dentro da sala (720p a 30 fps). A sua imagem aparece espelhada só para você. Escolha a câmera em **Áudio**.
+- **Compartilhar tela** com três predefinições:
   - **Nitidez**: até 1440p a 30 fps, até 8 Mbps, prefere AV1. Ideal para texto.
-  - **Movimento**: 1080p a 60 fps, até 8 Mbps, prefere H.264 (codificação por hardware). Ideal para jogos e vídeos.
+  - **Movimento**: 1080p a 60 fps, até 8 Mbps, prefere H.264. Ideal para jogos e vídeos.
   - **Equilibrado**: 1080p a 30 fps, até 5 Mbps, prefere VP9. Para internet mais fraca.
-  A transmissão já começa com banda alta, sem o borrão dos primeiros segundos. Cada tela mostra no canto a resolução e os fps que estão chegando. O áudio da aba ou do sistema vai junto quando o navegador permite (Chrome/Edge).
-- A banda de cada espectador sai da internet de **quem transmite**. Com várias pessoas assistindo, o upload é dividido entre elas.
+- **Áudio** (dentro da sala): microfone, **apertar para falar** (tecla padrão `V`), **supressão de ruído** por IA, **modo música** (estéreo a 128 kbps) e avisos sonoros de entrada e saída.
+- **Volume por pessoa:** clique no bloco de alguém na sala; cada transmissão de tela tem o próprio controle.
+- A banda de cada espectador sai da internet de **quem transmite**: com várias pessoas assistindo, o upload é dividido entre elas.
+
+## Dados e backup
+
+- Tudo fica na pasta **`dados/`**: o banco `junta.db`, os anexos em `anexos/` e as fotos em `avatares/`. Atualizar o código não apaga nada.
+- **Backup automático:** uma vez por dia o Junta salva uma cópia do banco em `dados/backups/` e mantém as **7 mais recentes**. Anexos e fotos são copiados para `dados/backups/arquivos/`. O dono também pode fazer um backup na hora em **Administração → Backups**.
+- Para guardar os backups em outro disco ou numa pasta sincronizada (OneDrive, Google Drive), defina a variável `JUNTA_BACKUP_DIR` com o caminho.
+- **Restaurar:** feche o Junta, copie o arquivo `junta-…db` escolhido para `dados/junta.db` (substituindo) e copie o conteúdo de `backups/arquivos/` para `dados/`.
+
+## Para quem for mexer no código
+
+```
+server.js            liga tudo e sobe o servidor
+lib/db.js            banco SQLite (tabelas e atualizações automáticas)
+lib/accounts.js      senhas, sessões, cadastro, login, troca de senha
+lib/messages.js      histórico, envio, respostas, reações, menções, não lidas, busca
+lib/channels.js      servidores, canais, mensagens diretas e quem pode ver o quê
+lib/previews.js      prévia de links (com bloqueio da rede interna)
+lib/files.js         anexos e fotos de perfil
+lib/servers.js       criar/apagar servidores e canais, perfil e apelidos
+lib/voice.js         salas de voz e sinalização WebRTC
+lib/realtime.js      quem está online e em cada sala
+lib/admin.js         contas (dono) e backups
+public/js/*.js       a interface, um arquivo por assunto (core → … → auth, nesta ordem)
+test/                testes automáticos
+```
+
+**Testes automáticos:** `npm test` sobe um Junta temporário (num banco à parte, apagado no fim) e confere cadastro, permissões, menções, não lidas, respostas, reações, privacidade das mensagens diretas, busca, administração, backup e a proteção das prévias de links.
 
 ## Limites conhecidos
 
-- **Rede:** só usa STUN do Google. Em redes corporativas ou 4G com NAT restritivo a conexão de voz/tela pode falhar; nesse caso adicione um servidor TURN (ex.: coturn ou Metered) em `ICE` no topo de `public/app.js`.
-- **Tamanho da sala:** a malha funciona bem até umas 5–6 pessoas. Para mais gente, troque por um SFU (LiveKit, mediasoup).
-- **Esqueceu a senha:** ainda não há recuperação por e-mail. O dono pode apagar a conta direto no banco, e a pessoa cria outra.
+- **Rede:** só usa STUN do Google. Em redes corporativas ou 4G com NAT restritivo a voz, a câmera e a tela podem não conectar; nesse caso adicione um servidor TURN (ex.: Metered) em `ICE`, no topo de `public/js/core.js`.
+- **Tamanho da sala:** cada pessoa conecta direto com cada outra; funciona bem até umas 5–6 pessoas. Para mais gente, seria preciso um servidor de mídia (SFU).
+- **Notificações** só aparecem com o Junta aberto em alguma aba (mesmo em segundo plano).
 - **Render (plano grátis):** o disco é apagado a cada atualização, então mensagens e anexos se perderiam lá. Para hospedar fora do seu PC, seria preciso um banco e um armazenamento de arquivos externos.
 - Compartilhar tela pelo celular não é suportado pela maioria dos navegadores; assistir funciona.

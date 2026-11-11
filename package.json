@@ -4,7 +4,8 @@
   "description": "Chat em tempo real com canais de texto, salas de voz e compartilhamento de tela",
   "main": "server.js",
   "scripts": {
-    "start": "node --disable-warning=ExperimentalWarning server.js"
+    "start": "node --disable-warning=ExperimentalWarning server.js",
+    "test": "node --disable-warning=ExperimentalWarning --test test/server.test.js"
   },
   "engines": {
     "node": ">=22.13"
@@ -14,5 +15,8 @@
     "express": "^4.21.2",
     "multer": "^2.5.0",
     "socket.io": "^4.8.1"
+  },
+  "devDependencies": {
+    "socket.io-client": "^4.8.1"
   }
 }

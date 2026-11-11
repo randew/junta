@@ -13,7 +13,7 @@
 <div class="app" id="app">
   <!-- Trilho de servidores -->
   <nav class="rail" aria-label="Servidores">
-    <div class="rail-logo" title="Junta">J</div>
+    <button class="rail-logo" id="homeBtn" type="button" title="Mensagens diretas" aria-label="Início: mensagens diretas">J</button>
     <div class="rail-sep"></div>
     <div id="serverList" class="rail-list"></div>
     <button class="rail-btn add" id="addServerBtn" title="Criar servidor" aria-label="Criar servidor">+</button>
@@ -47,8 +47,11 @@
         <button role="menuitem" data-status="idle"><span class="sdot s-idle"></span><span><strong>Ausente</strong><small>Também liga sozinho com a aba em segundo plano.</small></span></button>
         <button role="menuitem" data-status="dnd"><span class="sdot s-dnd"></span><span><strong>Não perturbe</strong><small>Mostra aos outros que você está ocupado.</small></span></button>
         <div class="menu-sep" role="separator"></div>
+        <button role="menuitem" data-action="notif"><span class="menu-ic">◉</span><span><strong>Notificações</strong><small id="notifState">Desligadas</small></span></button>
+        <button role="menuitem" data-action="password"><span class="menu-ic">✱</span><span><strong>Trocar senha</strong></span></button>
         <div id="ownerItems" hidden>
           <button role="menuitem" data-action="invite"><span class="menu-ic">＋</span><span><strong>Convidar amigos</strong><small>Ver e copiar o código de convite.</small></span></button>
+          <button role="menuitem" data-action="admin"><span class="menu-ic">⚙</span><span><strong>Administração</strong><small>Contas, senhas e backups.</small></span></button>
         </div>
         <button role="menuitem" data-action="logout"><span class="menu-ic">⎋</span><span><strong>Sair da conta</strong></span></button>
       </div>
@@ -67,6 +70,10 @@
       <span class="topbar-mark" id="topMark">#</span>
       <h2 id="channelTitle">—</h2>
       <span class="topbar-sub" id="channelSub"></span>
+      <div class="search-box">
+        <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.47 6.47 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/></svg>
+        <input id="searchInput" type="search" placeholder="Buscar" aria-label="Buscar mensagens (Ctrl+K)" autocomplete="off">
+      </div>
       <button class="icon-btn members-toggle" id="membersBtn" aria-pressed="true" title="Membros" aria-label="Mostrar ou esconder a lista de membros">
         <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm-8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05A4.2 4.2 0 0 1 17 16.5V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
       </button>
@@ -80,17 +87,36 @@
       <div class="messages" id="messages" aria-live="polite"></div>
       <div class="typing" id="typing"></div>
       <div class="drop-zone" id="dropZone" hidden><div>Solte para anexar</div></div>
+      <div class="jump-bar" id="jumpBar" hidden>
+        <span id="jumpText">Você está vendo mensagens antigas.</span>
+        <button type="button" id="jumpLatest">Ir para as mais recentes</button>
+      </div>
+      <div class="mention-pop" id="mentionPop" role="listbox" aria-label="Pessoas para mencionar" hidden></div>
       <div class="tray" id="tray" hidden></div>
+      <div class="reply-bar" id="replyBar" hidden>
+        <span>Respondendo a <strong id="replyName"></strong></span>
+        <button type="button" class="icon-btn" id="replyCancel" title="Cancelar resposta (Esc)" aria-label="Cancelar resposta">×</button>
+      </div>
       <form class="composer" id="composer" autocomplete="off">
         <button type="button" class="icon-btn attach" id="attachBtn" title="Anexar arquivos" aria-label="Anexar arquivos">
           <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M16.5 6v11.5a4 4 0 0 1-8 0V5a2.5 2.5 0 0 1 5 0v10.5a1 1 0 0 1-2 0V6H10v9.5a2.5 2.5 0 0 0 5 0V5a4 4 0 0 0-8 0v12.5a5.5 5.5 0 0 0 11 0V6h-1.5z"/></svg>
         </button>
         <input type="file" id="fileInput" multiple hidden>
         <textarea id="msgInput" rows="1" placeholder="Mensagem"></textarea>
+        <button type="button" class="icon-btn emoji-btn" id="emojiBtn" title="Emojis" aria-label="Inserir emoji">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm-3.5-9A1.5 1.5 0 1 0 7 9.5 1.5 1.5 0 0 0 8.5 11zm7 0A1.5 1.5 0 1 0 14 9.5a1.5 1.5 0 0 0 1.5 1.5zM12 17.5a5.5 5.5 0 0 0 5.1-3.5H6.9a5.5 5.5 0 0 0 5.1 3.5z"/></svg>
+        </button>
         <button type="submit" class="send" id="sendBtn" aria-label="Enviar">
           <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
         </button>
       </form>
+    </section>
+
+    <!-- Início sem conversa aberta -->
+    <section class="dm-empty" id="dmEmpty" hidden>
+      <h3>Mensagens diretas</h3>
+      <p>Converse em particular com alguém do Junta. Só vocês dois veem as mensagens.</p>
+      <button class="primary" type="button" id="dmEmptyNew">Nova conversa</button>
     </section>
 
     <!-- Voz -->
@@ -106,6 +132,10 @@
           <svg class="on" viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
           <svg class="off" viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M19 11h-2c0 .74-.16 1.43-.43 2.06l1.47 1.47A6.9 6.9 0 0 0 19 11zM15 11.17V5a3 3 0 0 0-5.94-.6L15 10.35v.82zM4.27 3 3 4.27l6 6V11a3 3 0 0 0 4.52 2.59l1.48 1.48A5 5 0 0 1 7 11H5a7 7 0 0 0 6 6.92V21h2v-3.08a6.9 6.9 0 0 0 3.47-1.4L19.73 21 21 19.73 4.27 3z"/></svg>
           <span>Microfone</span>
+        </button>
+        <button class="ctrl cam" id="camBtn" aria-pressed="false">
+          <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M17 10.5V7a1 1 0 0 0-1-1H4a1 1 0 0 0-1 1v10a1 1 0 0 0 1 1h12a1 1 0 0 0 1-1v-3.5l4 4v-11l-4 4z"/></svg>
+          <span>Câmera</span>
         </button>
         <button class="ctrl share" id="shareBtn" aria-pressed="false">
           <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M20 18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2H0v2h24v-2h-4zM4 6h16v10H4V6zm7 2.5L7.5 12H10v3h2v-3h2.5L11 8.5z"/></svg>
@@ -129,6 +159,13 @@
 
     <aside class="members" id="members" aria-label="Membros">
       <div id="memberList"></div>
+    </aside>
+    <aside class="search-panel" id="searchPanel" aria-label="Resultados da busca" hidden>
+      <header class="sp-head">
+        <h3 id="searchTitle">Resultados</h3>
+        <button type="button" class="icon-btn" id="searchClose" title="Fechar busca" aria-label="Fechar busca">×</button>
+      </header>
+      <div id="searchResults"></div>
     </aside>
     </div>
   </main>
@@ -217,6 +254,63 @@
   </form>
 </div>
 
+<!-- Seletor de emojis -->
+<div class="emoji-picker" id="emojiPicker" role="dialog" aria-label="Emojis" hidden></div>
+
+<!-- Nova conversa direta -->
+<div class="modal-back" id="dmPick" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="dmPickTitle">
+    <h3 id="dmPickTitle">Nova conversa</h3>
+    <input id="dmPickSearch" class="text-in" placeholder="Buscar pelo nome" aria-label="Buscar pessoa" autocomplete="off">
+    <div class="pick-list" id="dmPickList"></div>
+    <div class="modal-actions"><button type="button" class="ghost" id="dmPickClose">Fechar</button></div>
+  </div>
+</div>
+
+<!-- Trocar senha -->
+<div class="modal-back" id="pwModal" hidden>
+  <form class="modal" id="pwForm" novalidate>
+    <h3>Trocar senha</h3>
+    <label class="field" for="pwCurrent"><span class="lbl">Senha atual</span><input id="pwCurrent" class="text-in" type="password" autocomplete="current-password"></label>
+    <label class="field" for="pwNext"><span class="lbl">Nova senha</span><input id="pwNext" class="text-in" type="password" autocomplete="new-password" minlength="6"></label>
+    <label class="field" for="pwRepeat"><span class="lbl">Repita a nova senha</span><input id="pwRepeat" class="text-in" type="password" autocomplete="new-password"></label>
+    <p class="help">Os outros aparelhos em que você está conectado vão precisar entrar de novo.</p>
+    <p class="auth-error" id="pwError" role="alert" hidden></p>
+    <div class="modal-actions"><button type="button" class="ghost" id="pwCancel">Cancelar</button><button type="submit" class="primary" id="pwSave">Trocar senha</button></div>
+  </form>
+</div>
+
+<!-- Administração (dono) -->
+<div class="modal-back" id="adminModal" hidden>
+  <div class="modal admin-modal" role="dialog" aria-modal="true" aria-labelledby="adminTitle">
+    <h3 id="adminTitle">Administração</h3>
+    <div class="auth-tabs" role="tablist">
+      <button type="button" role="tab" data-admin-tab="users" aria-selected="true">Contas</button>
+      <button type="button" role="tab" data-admin-tab="backups" aria-selected="false">Backups</button>
+    </div>
+    <div id="adminUsers">
+      <p class="help">Redefinir gera uma senha temporária para você passar à pessoa. Remover tira o acesso, mas mantém as mensagens; dá para restaurar.</p>
+      <div class="admin-list" id="adminUserList"></div>
+    </div>
+    <div id="adminBackups" hidden>
+      <p class="help">Todo dia o Junta guarda uma cópia do banco (mensagens, contas e canais) e mantém as 7 mais recentes. Anexos e fotos são copiados para a pasta <code>arquivos</code> ao lado.</p>
+      <p class="help">Pasta: <code id="backupDir"></code></p>
+      <div class="admin-list" id="backupList"></div>
+      <p class="help">Para restaurar: feche o Junta, copie o arquivo escolhido para <code>dados/junta.db</code> (substituindo) e copie o conteúdo de <code>arquivos</code> para <code>dados</code>.</p>
+      <button type="button" class="ghost-btn" id="backupNow">Fazer backup agora</button>
+    </div>
+    <div class="modal-actions"><button type="button" class="primary" id="adminClose">Fechar</button></div>
+  </div>
+</div>
+<div class="modal-back" id="tempModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="tempTitle">
+    <h3 id="tempTitle">Senha temporária</h3>
+    <p>Passe estes dados para <strong id="tempUser"></strong>. Esta senha só aparece agora.</p>
+    <div class="invite-code" id="tempPass"></div>
+    <div class="modal-actions"><button type="button" class="ghost" id="tempClose">Fechar</button><button type="button" class="primary" id="tempCopy">Copiar</button></div>
+  </div>
+</div>
+
 <!-- Convite (dono) -->
 <div class="modal-back" id="inviteModal" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="inviteTitle">
@@ -258,6 +352,10 @@
 
     <label class="field" for="micSelect"><span class="lbl">Microfone</span>
       <select id="micSelect"></select>
+    </label>
+
+    <label class="field" for="camSelect"><span class="lbl">Câmera</span>
+      <select id="camSelect"></select>
     </label>
 
     <fieldset class="field">
@@ -308,6 +406,18 @@
 <div class="toast" id="toast" role="status" hidden></div>
 
 <script src="/socket.io/socket.io.js"></script>
-<script src="app.js"></script>
+<!-- código do app, dividido por assunto; a ordem importa: base primeiro, início por último -->
+<script src="js/core.js"></script>
+<script src="js/format.js"></script>
+<script src="js/layout.js"></script>
+<script src="js/chat.js"></script>
+<script src="js/unread.js"></script>
+<script src="js/dm.js"></script>
+<script src="js/search.js"></script>
+<script src="js/voice.js"></script>
+<script src="js/profile.js"></script>
+<script src="js/admin.js"></script>
+<script src="js/events.js"></script>
+<script src="js/auth.js"></script>
 </body>
 </html>
