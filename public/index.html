@@ -78,6 +78,7 @@
       <span class="topbar-mark" id="topMark">#</span>
       <h2 id="channelTitle">—</h2>
       <span class="topbar-sub" id="channelSub"></span>
+      <span class="season-pill" id="seasonPill" hidden></span>
       <div class="search-box">
         <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.47 6.47 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/></svg>
         <input id="searchInput" type="search" placeholder="Buscar" aria-label="Buscar mensagens (Ctrl+K)" autocomplete="off">
@@ -372,6 +373,7 @@
       <button type="button" role="tab" data-admin-tab="users" aria-selected="true">Contas</button>
       <button type="button" role="tab" data-admin-tab="backups" aria-selected="false">Backups</button>
       <button type="button" role="tab" data-admin-tab="turn" aria-selected="false">TURN</button>
+      <button type="button" role="tab" data-admin-tab="theme" aria-selected="false">Tema</button>
     </div>
     <div id="adminUsers">
       <p class="help">Redefinir gera uma senha temporária para você passar à pessoa. Remover tira o acesso, mas mantém as mensagens; dá para restaurar.</p>
@@ -383,6 +385,14 @@
       <div class="admin-list" id="backupList"></div>
       <p class="help">Para restaurar: feche o Junta, copie o arquivo escolhido para <code>dados/junta.db</code> (substituindo) e copie o conteúdo de <code>arquivos</code> para <code>dados</code>.</p>
       <button type="button" class="ghost-btn" id="backupNow">Fazer backup agora</button>
+    </div>
+    <div id="adminTheme" hidden>
+      <label class="switch" for="themeNoite">
+        <input type="checkbox" id="themeNoite">
+        <span><strong>Tema de fim de ano: Noite Feliz</strong>
+          <small>Azul-noite com detalhes dourados, neve caindo, gorro no ícone do Junta e contagem para o Natal e o Ano Novo no topo da conversa. Liga e desliga na hora para todo mundo.</small></span>
+      </label>
+      <p class="help">A neve some enquanto alguém assiste a uma transmissão e não aparece para quem ativou "reduzir movimento" no sistema.</p>
     </div>
     <div id="adminTurn" hidden>
       <p class="help">Quanto o TURN da Cloudflare repassou para quem não conseguiu conexão direta. Só o que sai da Cloudflare conta para os 1.000 GB grátis do mês.</p>
@@ -506,6 +516,7 @@
 <script src="/socket.io/socket.io.js"></script>
 <!-- código do app, dividido por assunto; a ordem importa: base primeiro, início por último -->
 <script src="js/core.js"></script>
+<script src="js/theme.js"></script>
 <script src="js/format.js"></script>
 <script src="js/sortable.js"></script>
 <script src="js/layout.js"></script>

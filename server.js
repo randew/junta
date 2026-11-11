@@ -92,7 +92,7 @@ function start({ port = process.env.PORT || 3000, backups = true, log = console.
       reply(cb, {
         sid: socket.id, user: accounts.publicUser(accounts.fullUser(me().id)),
         servers: serverList(me().id), voice: ctx.rt.voiceFor(me().id), ...ctx.rt.presencePayload(),
-        unread: messages.unreadFor(me().id), dms: dmList(me().id),
+        unread: messages.unreadFor(me().id), dms: dmList(me().id), theme: admin.currentTheme(),
       });
     });
 

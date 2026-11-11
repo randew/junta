@@ -407,3 +407,17 @@ test('TURN: consumo do mês, últimos 7 dias e conexões agora', async () => {
   const r = await andre.api('GET', '/api/admin/turn-usage');
   assert.equal(r.data.usage.configured, false);
 });
+
+test('tema de fim de ano: só o dono liga, e todos recebem na hora', async () => {
+  assert.equal((await (await fetch(`${app.base}/api/theme`)).json()).theme, null);
+  assert.equal((await bia.api('POST', '/api/admin/theme', { theme: 'noite' })).status, 403);
+  assert.equal((await andre.api('POST', '/api/admin/theme', { theme: 'xyz' })).status, 400);
+  const got = bia.waitFor('theme', (d) => d.theme === 'noite');
+  assert.equal((await andre.api('POST', '/api/admin/theme', { theme: 'noite' })).status, 200);
+  await got;
+  assert.equal((await bia.emit('hello', {})).theme, 'noite');
+  assert.equal((await (await fetch(`${app.base}/api/theme`)).json()).theme, 'noite');
+  const off = caio.waitFor('theme', (d) => d.theme === null);
+  await andre.api('POST', '/api/admin/theme', { theme: null });
+  await off;
+});

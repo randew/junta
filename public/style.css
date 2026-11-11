@@ -765,5 +765,22 @@ body.resizing video, body.resizing iframe { pointer-events: none; }
 .turn-val { font-size: 10px; color: var(--fg-dim); font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .turn-dl { font-size: 11px; color: var(--fg-dim); text-transform: capitalize; }
 #adminTurn .ghost-btn { margin-top: 6px; }
-.admin-modal .auth-tabs { grid-template-columns: repeat(3, 1fr); }
+.admin-modal .auth-tabs { grid-template-columns: repeat(4, 1fr); }
 #turnUsage > .lbl { margin-top: 4px; }
+
+/* ---------- tema de fim de ano: Noite Feliz ---------- */
+:root.theme-noite {
+  --ink-0: #070d1f; --ink-1: #0c1530; --ink-2: #101c3d; --ink-3: #17264d; --ink-4: #22355f;
+  --fg: #eef2ff; --fg-dim: #93a0c8; --amber: #f2c14e; --amber-ink: #1d1504; --live: #7fd6b0;
+}
+.theme-noite .messages, .theme-noite .voice-view { background: radial-gradient(1200px 500px at 70% -10%, #1a2b5c 0%, transparent 60%), var(--ink-2); }
+.theme-noite .rail { background: linear-gradient(#070d1f, #0b1330); }
+.theme-noite .chan.active { box-shadow: inset 3px 0 0 var(--amber); }
+.theme-noite .rail-logo { position: relative; }
+.theme-noite .rail-logo::after {
+  content: ""; position: absolute; top: -11px; right: -9px; width: 32px; height: 28px; transform: rotate(18deg); pointer-events: none;
+  background: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 34 30'%3E%3Cpath d='M3 24 C8 8 20 2 30 8 L24 14 C20 10 14 12 12 24Z' fill='%23d6283a'/%3E%3Crect x='1' y='22' width='16' height='6' rx='3' fill='%23fff'/%3E%3Ccircle cx='29' cy='9' r='4' fill='%23fff'/%3E%3C/svg%3E") no-repeat;
+}
+.snow { position: fixed; inset: 0; width: 100%; height: 100%; pointer-events: none; z-index: 30; }
+.season-pill { flex: none; font-size: 12px; color: var(--amber); background: color-mix(in srgb, var(--amber) 12%, transparent); padding: 3px 9px; border-radius: 999px; white-space: nowrap; }
+@media (max-width: 900px) { .season-pill { display: none; } }

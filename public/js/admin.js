@@ -30,8 +30,8 @@ for (const b of document.querySelectorAll('[data-admin-tab]')) b.onclick = () =>
 function showAdminTab(tab) {
   adminTab = tab;
   for (const b of document.querySelectorAll('[data-admin-tab]')) b.setAttribute('aria-selected', String(b.dataset.adminTab === tab));
-  $('adminUsers').hidden = tab !== 'users'; $('adminBackups').hidden = tab !== 'backups'; $('adminTurn').hidden = tab !== 'turn';
-  if (tab === 'users') loadAdminUsers(); else if (tab === 'backups') loadBackups(); else loadTurnUsage();
+  $('adminUsers').hidden = tab !== 'users'; $('adminBackups').hidden = tab !== 'backups'; $('adminTurn').hidden = tab !== 'turn'; $('adminTheme').hidden = tab !== 'theme';
+  if (tab === 'users') loadAdminUsers(); else if (tab === 'backups') loadBackups(); else if (tab === 'turn') loadTurnUsage(); else renderThemeTab();
 }
 
 const ago = (ts) => {
@@ -158,3 +158,13 @@ async function loadTurnUsage(force) {
   box.append(el('small', 'help', `Atualizado às ${new Date(u.updated).toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })}. A Cloudflare consolida os números a cada 5 minutos.`));
 }
 $('turnRefresh').onclick = () => loadTurnUsage(true);
+
+// ---------- tema de fim de ano ----------
+function renderThemeTab() { $('themeNoite').checked = curTheme === 'noite'; }
+$('themeNoite').onchange = async () => {
+  const on = $('themeNoite').checked;
+  $('themeNoite').disabled = true;
+  try { await api('POST', '/api/admin/theme', { theme: on ? 'noite' : null }); toast(on ? 'Noite Feliz ligado para todo mundo.' : 'Tema de fim de ano desligado.'); }
+  catch (x) { toast(x.message); renderThemeTab(); }
+  finally { $('themeNoite').disabled = false; }
+};

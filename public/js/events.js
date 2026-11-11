@@ -48,6 +48,7 @@ function afterHello(d) {
   S.me.id = d.sid; S.me.uid = d.user.id; S.me.name = d.user.name; S.me.role = d.user.role;
   S.servers = d.servers; S.voice = d.voice;
   S.unread = d.unread || {}; S.dms = d.dms || [];
+  applyTheme(d.theme);
   applyPresence(d);
   renderUnread();
   $('addServerBtn').hidden = !isOwner();

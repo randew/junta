@@ -60,6 +60,10 @@ Algumas redes (4G de certas operadoras, redes de empresa) não deixam a conexão
 - **Larguras:** arraste a borda da lista de canais, da lista de membros ou do chat ao lado da sala. Duplo clique na borda volta ao padrão. Fica salvo no navegador.
 - **Conversas longas:** a tela guarda no máximo 250 mensagens. Rolando para cima ou para baixo, as do outro extremo saem e são buscadas de novo quando você voltar, então o Junta não fica pesado depois de horas aberto.
 
+## Tema de fim de ano
+
+Em **Administração → Tema**, o dono liga o **Noite Feliz** para todo mundo, na hora: azul-noite com dourado, neve caindo, gorro no ícone do Junta e contagem para o Natal (e, depois do dia 25, para o Ano Novo) no topo da conversa. Desligado, a interface fica como sempre. A neve some enquanto alguém assiste a uma transmissão e não aparece para quem ativou "reduzir movimento" no sistema.
+
 ## Contas, convites e administração
 
 - Na primeira vez que o servidor liga, o terminal mostra um **código de convite**. Abra o Junta, clique em **Criar conta** e use esse código. **Quem criar a primeira conta vira o dono do Junta.**
