@@ -142,13 +142,28 @@ function welcomeNode() {
     const big = avatar(name, uid); big.classList.add('big-av'); w.append(big);
     w.append(el('h3', null, name), el('p', null, `Este é o começo da sua conversa com ${name}. Só vocês dois veem estas mensagens.`));
   } else {
-    const c = currentChannel();
+    const c = textChannel();
     w.append(el('div', 'big', '#'), el('h3', null, `Bem-vindo a #${c?.name}`), el('p', null, `Este é o começo do canal #${c?.name}.`));
   }
   return w;
 }
 
-function renderMessages(scroll) {
+// No máximo MAX_MSGS mensagens ficam na tela: ao rolar, as do outro extremo saem e voltam
+// a ser buscadas no servidor quando você rolar de volta. Assim a página não pesa com o tempo.
+const MAX_MSGS = 250, TRIM_STEP = 50;
+// a mensagem no topo da área visível e a distância dela até o topo
+function anchorOf(box) {
+  const top = box.getBoundingClientRect().top;
+  for (const n of box.querySelectorAll('.msg[data-id]')) { const r = n.getBoundingClientRect(); if (r.bottom > top) return { id: n.dataset.id, off: r.top - top }; }
+  return null;
+}
+function restoreAnchor(box, a) {
+  const n = a && box.querySelector(`.msg[data-id="${CSS.escape(a.id)}"]`); if (!n) return false;
+  box.scrollTop += n.getBoundingClientRect().top - box.getBoundingClientRect().top - a.off;
+  return true;
+}
+
+function renderMessages(scroll, anchor) {
   const box = $('messages');
   const keep = !scroll && box.scrollHeight - box.scrollTop; // mantém a posição ao redesenhar
   box.replaceChildren();
@@ -166,6 +181,7 @@ function renderMessages(scroll) {
   });
   if (!S.atLatest) box.append(el('div', 'older', S.loadingNewer ? 'Carregando mensagens mais novas…' : 'Role para baixo para ver mensagens mais novas'));
   if (scroll) box.scrollTop = box.scrollHeight;
+  else if (anchor && restoreAnchor(box, anchor)) { /* posição mantida pela mensagem de referência */ }
   else if (keep) box.scrollTop = box.scrollHeight - keep;
   $('jumpBar').hidden = S.atLatest;
   markRead();
@@ -214,16 +230,20 @@ $('messages').addEventListener('scroll', () => {
     socket.emit('history', { key, before: S.messages[0].seq }, ({ messages, more }) => {
       S.loadingOlder = false;
       if (key !== curKey()) return;
+      const a = anchorOf(box);
       S.messages = [...messages, ...S.messages]; S.more = more;
-      renderMessages();
+      if (S.messages.length > MAX_MSGS) { S.messages = S.messages.slice(0, MAX_MSGS); S.atLatest = false; } // as mais novas saem da tela
+      renderMessages(false, a);
     });
   } else if (stickBottom && !S.atLatest && !S.loadingNewer) {
     S.loadingNewer = true;
     socket.emit('history-newer', { key, after: S.messages.at(-1).seq }, ({ messages, atLatest }) => {
       S.loadingNewer = false;
       if (key !== curKey()) return;
+      const a = anchorOf(box);
       S.messages = [...S.messages, ...messages]; S.atLatest = atLatest;
-      renderMessages();
+      if (S.messages.length > MAX_MSGS) { S.messages = S.messages.slice(-MAX_MSGS); S.more = true; } // as mais antigas saem da tela
+      renderMessages(false, a);
     });
   }
   markRead();
@@ -265,6 +285,8 @@ socket.on('message', ({ key, msg }) => {
   const prev = S.messages[S.messages.length - 1];
   S.messages.push(msg); box.append(msgNode(msg, prev));
   if (nearBottom || msg.uid === S.me.uid) box.scrollTop = box.scrollHeight;
+  // canal movimentado: quem está acompanhando no fim não acumula mensagens sem limite
+  if (S.messages.length > MAX_MSGS + TRIM_STEP && (nearBottom || msg.uid === S.me.uid)) { S.messages = S.messages.slice(-MAX_MSGS); S.more = true; renderMessages(true); }
   if (msg.uid === S.me.uid) S.lastRead = msg.seq; // respondeu: some a linha de "novas"
   typingNames.delete(userName(msg.uid)); renderTyping();
   markRead();

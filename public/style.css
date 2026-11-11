@@ -23,7 +23,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 :focus-visible { outline: 2px solid var(--amber); outline-offset: 2px; }
 [hidden] { display: none !important; }
 
-.app { display: grid; grid-template-columns: 72px 248px 1fr; height: 100%;
+.app { display: grid; grid-template-columns: 72px var(--side-w, 248px) 1fr; height: 100%;
   padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
 
 /* ---------- Trilho ---------- */
@@ -43,7 +43,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 .rail-btn .vbadge { position: absolute; right: -2px; bottom: -2px; width: 14px; height: 14px; border-radius: 50%; background: var(--live); border: 3px solid var(--ink-0); }
 
 /* ---------- Lateral ---------- */
-.sidebar { background: var(--ink-1); display: flex; flex-direction: column; min-width: 0; }
+.sidebar { background: var(--ink-1); display: flex; flex-direction: column; min-width: 0; position: relative; }
 .sidebar-head { height: 52px; display: flex; align-items: center; padding: 0 16px; border-bottom: 1px solid var(--ink-0); }
 .sidebar-head h1 { margin: 0; font: 700 16px/1.2 var(--display); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 .channels { flex: 1; overflow-y: auto; padding: 12px 8px; display: flex; flex-direction: column; gap: 2px; }
@@ -172,7 +172,7 @@ button { font: inherit; color: inherit; cursor: pointer; }
 /* ---------- Celular ---------- */
 @media (max-width: 760px) {
   .app { grid-template-columns: 1fr; }
-  .rail, .sidebar { position: fixed; top: 0; bottom: 0; z-index: 40; transform: translateX(-110%); transition: transform .2s; }
+  .rail, .sidebar { position: fixed; top: 0; bottom: 0; z-index: 40; transform: translateX(calc(-100% - 96px)); transition: transform .2s; } /* a lista de canais começa em 72px: precisa sair inteira da tela */
   .rail { left: 0; width: 72px; padding-top: calc(12px + env(safe-area-inset-top, 0px)); }
   .sidebar { left: 72px; width: min(280px, calc(100vw - 72px)); padding-top: env(safe-area-inset-top, 0px); padding-bottom: env(safe-area-inset-bottom, 0px); }
   .app.drawer .rail, .app.drawer .sidebar { transform: none; }
@@ -230,7 +230,7 @@ kbd { padding: 3px 6px; font-size: 11px; margin-left: 4px; }
 .views { flex: 1; display: flex; flex-direction: column; min-width: 0; min-height: 0; }
 .members-toggle { margin-left: auto; }
 .members-toggle[aria-pressed="true"] { color: var(--fg); }
-.members { width: 240px; flex: none; background: var(--ink-1); overflow-y: auto; padding: 8px 8px 16px; }
+.members { width: var(--mem-w, 240px); flex: none; background: var(--ink-1); overflow-y: auto; padding: 8px 8px 16px; }
 .app.no-members .members { display: none; }
 .mgroup { padding: 16px 8px 4px; color: var(--fg-dim); font-size: 11px; font-weight: 600; letter-spacing: .08em; text-transform: uppercase; }
 .mrow { display: flex; align-items: center; gap: 10px; padding: 5px 8px; border-radius: 6px; min-width: 0; }
@@ -690,3 +690,50 @@ mark { background: color-mix(in srgb, var(--amber) 45%, transparent); color: var
 .card-role-add { background: var(--ink-0); border: 1px dashed var(--ink-4); color: var(--fg-dim); border-radius: 6px; padding: 3px 6px; font: inherit; font-size: 12px; cursor: pointer; }
 #roleAddMember { background: var(--ink-0); border: 1px solid var(--ink-4); color: var(--fg); border-radius: 8px; padding: 9px 10px; font: inherit; width: 100%; }
 .admin-modal:has(#ssRoles:not([hidden])) { width: min(820px, 100%); }
+
+/* ---------- v7: painéis redimensionáveis, destaque, chat ao lado, janela flutuante ---------- */
+.resizer { position: relative; flex: none; width: 8px; margin: 0 -4px; z-index: 6; cursor: col-resize; touch-action: none; outline: none; }
+.resizer::after { content: ""; position: absolute; top: 0; bottom: 0; left: 3px; width: 2px; border-radius: 2px; background: transparent; transition: background .15s; }
+.resizer:hover::after, .resizer.dragging::after, .resizer:focus-visible::after { background: var(--amber); }
+#sideResize { position: absolute; top: 0; bottom: 0; right: -4px; margin: 0; }
+body.resizing { cursor: col-resize; user-select: none; -webkit-user-select: none; }
+body.resizing video, body.resizing iframe { pointer-events: none; }
+.app.no-members #memResize, .app.searching #memResize { display: none; }
+@media (max-width: 1100px) { #memResize { display: none; } }
+
+/* chat de texto ao lado da sala de voz */
+.views.split { flex-direction: row; }
+.views.split .voice-view { order: 1; flex: 1; min-width: 0; }
+.views.split #chatResize { order: 2; }
+.views.split .text-view { order: 3; flex: none; width: var(--chat-w, 380px); min-width: 0; border-left: 1px solid var(--ink-0); background: var(--ink-2); }
+.side-head { display: flex; align-items: center; gap: 6px; padding: 8px 10px 8px 14px; border-bottom: 1px solid var(--ink-0); flex: none; }
+.side-head .glyph { color: var(--fg-dim); font-weight: 600; }
+.side-head select { flex: 1; min-width: 0; min-height: 34px; padding: 4px 28px 4px 8px; font-size: 14px; }
+.ctrl#chatBtn[aria-pressed="true"] { background: var(--ink-4); color: var(--fg); }
+
+/* destaque no palco */
+.tile.screen { cursor: pointer; }
+.tile .tile-btn { position: absolute; bottom: 8px; opacity: 0; transition: opacity .15s; background: color-mix(in srgb, var(--ink-0) 80%, transparent); z-index: 1; }
+.tile .focus-btn { right: 8px; }
+.tile .pip-btn { right: 48px; }
+.tile:hover .tile-btn, .tile:focus-within .tile-btn { opacity: 1; }
+@media (hover: none) { .tile .tile-btn { opacity: 1; } }
+.stage.focused .screens.focus { grid-template-columns: 1fr; }
+.stage.focused .screens.focus > .tile { min-height: 0; }
+.stage.focused .people-strip .tile.screen { flex: 0 0 190px; height: 107px; }
+.people-strip .tile.screen .qbadge, .people-strip .tile.screen .live-tag, .people-strip .tile.screen .fs { display: none; }
+.people-strip .tile .tile-btn { bottom: 4px; padding: 4px; }
+.people-strip .tile .focus-btn { right: 4px; } .people-strip .tile .pip-btn { right: 36px; }
+.tile.big { min-height: 0; }
+.tile.big video.cam { object-fit: contain; }
+.tile.big .avatar { width: 120px; height: 120px; font-size: 44px; }
+
+/* vídeo usado só para o picture-in-picture padrão (Safari) */
+.pip-video { position: fixed; left: 0; bottom: 0; width: 2px; height: 2px; opacity: 0; pointer-events: none; }
+
+@media (max-width: 760px) {
+  .resizer { display: none !important; }
+  .views.split { flex-direction: column; }
+  .views.split .voice-view { flex: 1 1 55%; }
+  .views.split .text-view { width: auto; flex: 1 1 45%; border-left: 0; border-top: 1px solid var(--ink-0); }
+}

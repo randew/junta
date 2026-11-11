@@ -19,6 +19,8 @@ const S = {
   atLatest: true, loadingNewer: false, lastRead: 0, replyTo: null,
   // voz
   voiceKey: null, screen: null, muted: false,
+  focus: null,         // tela ou câmera em destaque no palco ("screen:<id>" / "cam:<id>")
+  sideChat: null,      // id do canal de texto aberto ao lado da sala de voz
   peers: {},          // peerId -> { pc, polite, makingOffer, ignoreOffer, screenSenders, audioEls, screenStream }
   speaking: new Set(),
 };
@@ -52,11 +54,19 @@ const currentChannel = () => currentServer()?.channels.find((c) => c.id === S.ch
 const isDmKey = (k) => /^dm\/\d+-\d+$/.test(String(k));
 const dmKeyWith = (uid) => `dm/${Math.min(uid, S.me.uid)}-${Math.max(uid, S.me.uid)}`;
 const dmOther = (k) => { const [a, b] = k.slice(3).split('-').map(Number); return a === S.me.uid ? b : a; };
-// canal de texto (ou conversa direta) aberto agora; null numa sala de voz
+// canal de texto ao lado da sala de voz (chat lateral), se estiver aberto e ainda existir
+const sideChannel = () => {
+  if (!S.sideChat || currentChannel()?.type !== 'voice') return null;
+  const c = currentServer()?.channels.find((x) => x.id === S.sideChat);
+  return c?.type === 'text' ? c : null;
+};
+// o canal de texto que a conversa na tela mostra: o aberto, ou o chat lateral numa sala de voz
+const textChannel = () => { const c = currentChannel(); return c?.type === 'text' ? c : sideChannel(); };
+// canal de texto (ou conversa direta) aberto agora; null numa sala de voz sem chat lateral
 function curKey() {
   if (S.home) return S.dmKey;
-  const c = currentChannel();
-  return c?.type === 'text' ? keyOf(S.serverId, c.id) : null;
+  const c = textChannel();
+  return c ? keyOf(S.serverId, c.id) : null;
 }
 // ---------- permissões (as mesmas do servidor, em lib/perms.js) ----------
 const P = {
@@ -68,7 +78,7 @@ const has = (bits, bit) => (bits & bit) === bit;
 // no servidor: o que eu posso (o servidor manda isso já calculado)
 const canSrv = (bit, sid = S.serverId) => has(S.servers.find((s) => s.id === sid)?.perms ?? 0, bit);
 // no canal aberto (nas conversas diretas, pode tudo de texto)
-const canHere = (bit) => S.home || has(currentChannel()?.perms ?? 0, bit);
+const canHere = (bit) => S.home || has(textChannel()?.perms ?? currentChannel()?.perms ?? 0, bit);
 const canChan = (key, bit) => { if (isDmKey(key)) return true; const [sid, cid] = key.split('/'); return has(S.servers.find((s) => s.id === sid)?.channels.find((c) => c.id === cid)?.perms ?? 0, bit); };
 const rolesIn = (sid = S.serverId) => S.roles[sid] || [];
 const rolesOfUser = (uid, sid = S.serverId) => { const ids = S.memberRoles[sid]?.[uid] || []; return rolesIn(sid).filter((r) => ids.includes(r.id)); };

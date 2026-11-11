@@ -172,10 +172,12 @@ async function tuneSenders(p) {
         enc.networkPriority = isScreen ? 'medium' : 'high';
       } else {
         if ((p.camSenders || []).includes(s)) { // câmera: 720p até 1,5 Mbps, cede espaço para a tela
+          enc.active = p.want?.cam !== false; // a pessoa não está vendo: pausa só para ela
           enc.maxBitrate = 1_500_000; enc.maxFramerate = 30; enc.priority = 'low'; enc.networkPriority = 'low';
           prm.degradationPreference = 'balanced';
         } else {
           const pr = preset();
+          enc.active = p.want?.screen !== false;
           enc.maxBitrate = pr.kbps * 1000; enc.maxFramerate = pr.fps; enc.scaleResolutionDownBy = 1;
           enc.priority = 'medium'; enc.networkPriority = 'medium'; // a voz continua com prioridade alta
           prm.degradationPreference = pr.degrade;
@@ -247,22 +249,51 @@ function renderStage() {
     $('joinVoiceBtn').textContent = !can ? 'Sem permissão para entrar' : S.voiceKey ? 'Mudar para esta sala' : 'Entrar na sala';
     return;
   }
-  const screens = members.filter((m) => m.sharing && m.stream !== false).map((m) => {
-    const isMe = m.id === S.me.id;
-    return screenTile(m, isMe ? S.screen : remoteVideo(m, 'screen'), isMe);
-  });
-  const peopleTiles = members.map((m) => personTile(m));
+  // destaque: uma tela (ou câmera) grande, o resto numa faixa embaixo
+  const fk = S.focus?.split(':')[0], fid = S.focus?.slice(fk?.length + 1);
+  const fm = S.focus && members.find((m) => m.id === fid && m.stream !== false && (fk === 'screen' ? m.sharing : m.camera));
+  if (S.focus && !fm) S.focus = null;
+  const sharing = members.filter((m) => m.sharing && m.stream !== false);
+  const screenOf = (m) => screenTile(m, m.id === S.me.id ? S.screen : remoteVideo(m, 'screen'), m.id === S.me.id);
   stage.replaceChildren();
-  if (screens.length) {
+  stage.classList.toggle('focused', !!fm);
+  if (fm) {
     stage.classList.add('has-screen');
-    const sc = el('div', 'screens'); sc.append(...screens);
-    const strip = el('div', 'people-strip'); strip.append(...peopleTiles);
+    const big = el('div', 'screens focus');
+    big.append(fk === 'screen' ? screenOf(fm) : personTile(fm, true));
+    const strip = el('div', 'people-strip');
+    strip.append(...sharing.filter((m) => !(fk === 'screen' && m.id === fm.id)).map(screenOf));
+    strip.append(...members.filter((m) => !(fk === 'cam' && m.id === fm.id)).map((m) => personTile(m)));
+    stage.append(big, strip);
+  } else if (sharing.length) {
+    stage.classList.add('has-screen');
+    const sc = el('div', 'screens'); sc.append(...sharing.map(screenOf));
+    const strip = el('div', 'people-strip'); strip.append(...members.map((m) => personTile(m)));
     stage.append(sc, strip);
   } else {
     stage.classList.remove('has-screen');
-    stage.append(...peopleTiles);
+    stage.append(...members.map((m) => personTile(m)));
   }
+  syncPip();
+  scheduleWants();
 }
+
+// botões pequenos dos blocos: destacar e janela flutuante
+const SVG_FOCUS = '<svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M3 5v4h2V5h4V3H5a2 2 0 0 0-2 2zm2 10H3v4a2 2 0 0 0 2 2h4v-2H5v-4zm14 4h-4v2h4a2 2 0 0 0 2-2v-4h-2v4zm0-16h-4v2h4v4h2V5a2 2 0 0 0-2-2zM8 8h8v8H8z"/></svg>';
+const SVG_UNFOCUS = '<svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M3 3h8v8H3zm2 2v4h4V5zm8-2h8v8h-8zm2 2v4h4V5zM3 13h8v8H3zm2 2v4h4v-4zm8-2h8v8h-8zm2 2v4h4v-4z"/></svg>';
+const SVG_PIP = '<svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M19 11h-8v6h8v-6zm4 8V4.98C23 3.88 22.1 3 21 3H3c-1.1 0-2 .88-2 1.98V19c0 1.1.9 2 2 2h18c1.1 0 2-.9 2-2zm-2 .02H3V4.97h18v14.05z"/></svg>';
+function tileBtn(cls, label, svg, fn) {
+  const b = el('button', 'icon-btn tile-btn ' + cls); b.type = 'button'; b.title = label; b.setAttribute('aria-label', label); b.innerHTML = svg;
+  b.onclick = (e) => { e.stopPropagation(); fn(); };
+  return b;
+}
+function toggleFocus(k) { S.focus = S.focus === k ? null : k; renderStage(); }
+// Esc sai do destaque
+window.addEventListener('keydown', (e) => {
+  if (e.key !== 'Escape' || !S.focus || $('voiceView').hidden || typingTarget(e.target) || document.fullscreenElement) return;
+  if (document.querySelector('.modal-back:not([hidden]), .settings-back:not([hidden])')) return;
+  S.focus = null; renderStage();
+});
 
 function volPanel(kind, m) {
   const box = el('div', 'vol');
@@ -293,10 +324,15 @@ function volPanel(kind, m) {
   return box;
 }
 
-function personTile(m) {
+function personTile(m, big) {
   const isMe = m.id === S.me.id;
   const cam = m.camera && m.stream !== false ? (isMe ? S.cam : remoteVideo(m, 'cam')) : null;
-  const t = el('div', 'tile' + (isMe ? '' : ' person') + (cam ? ' has-cam' : '') + (S.speaking.has(m.id) ? ' speaking' : '')); t.dataset.pid = m.id;
+  const t = el('div', 'tile' + (isMe ? '' : ' person') + (cam ? ' has-cam' : '') + (big ? ' big' : '') + (S.speaking.has(m.id) ? ' speaking' : '')); t.dataset.pid = m.id;
+  if (m.camera && m.stream !== false) {
+    const k = 'cam:' + m.id, on = S.focus === k;
+    t.append(tileBtn('focus-btn', on ? 'Sair do destaque' : 'Destacar câmera', on ? SVG_UNFOCUS : SVG_FOCUS, () => toggleFocus(k)));
+    if (!isMe && cam) t.append(tileBtn('pip-btn', 'Janela flutuante', SVG_PIP, () => openPip('cam', m)));
+  }
   if (cam) {
     const v = document.createElement('video'); v.className = 'cam' + (isMe ? ' mirror' : ''); // a sua imagem aparece espelhada, como num espelho
     v.autoplay = true; v.playsInline = true; v.muted = true; v.srcObject = cam; t.append(v);
@@ -332,7 +368,13 @@ function screenTile(m, stream, isMe) {
   const goFs = () => (document.fullscreenElement ? document.exitFullscreen() : t.requestFullscreen?.())?.catch?.(() => {});
   fs.onclick = (e) => { e.stopPropagation(); goFs(); };
   t.ondblclick = goFs;
+  const k = 'screen:' + m.id, on = S.focus === k;
+  t.onclick = () => toggleFocus(k);
+  t.onkeydown = (e) => { if (e.key === 'Enter' && e.target === t) { e.preventDefault(); toggleFocus(k); } };
+  t.title = on ? 'Clique para sair do destaque · duplo clique: tela cheia' : 'Clique para destacar · duplo clique: tela cheia';
   const n = el('div', 'name'); n.append(el('span', null, isMe ? 'Sua tela' : `Tela de ${m.name}`)); t.append(n, fs);
+  t.append(tileBtn('focus-btn', on ? 'Sair do destaque' : 'Destacar', on ? SVG_UNFOCUS : SVG_FOCUS, () => toggleFocus(k)));
+  if (!isMe && stream) t.append(tileBtn('pip-btn', 'Janela flutuante', SVG_PIP, () => openPip('screen', m)));
   if (!isMe && stream && stream.getAudioTracks().length) {
     const k = 'screen:' + m.id;
     const vb = el('button', 'icon-btn vol-btn'); vb.title = 'Volume da transmissão'; vb.setAttribute('aria-label', 'Volume da transmissão');
@@ -379,6 +421,7 @@ async function joinVoice(key) {
     for (const id of peerIds) getPeer(id); // quem chega inicia as conexões
     if (S.muted) socket.emit('voice-update', { muted: true });
     renderChannels(); renderStage();
+    if (S.channelId && keyOf(S.serverId, S.channelId) === key) syncSideChat();
   });
 }
 
@@ -388,7 +431,8 @@ function leaveVoice() {
   for (const id of Object.keys(S.peers)) closePeer(id);
   stopMic(); stopAllMeters();
   socket.emit('voice-leave');
-  S.voiceKey = null; openVol = null; roomBaseline = null;
+  S.voiceKey = null; openVol = null; roomBaseline = null; S.focus = null;
+  closePip();
   playCue('selfLeave');
   renderChannels(); renderStage();
 }
@@ -443,7 +487,7 @@ function roomEvents(v) {
 function applyMute() {
   $('muteBtn').setAttribute('aria-pressed', String(S.muted));
   $('muteBtn').title = S.muted ? 'Ativar microfone' : 'Silenciar';
-  updateGate();
+  updateGate(); syncPip();
 }
 function toggleMute() {
   if (forcedMute()) { toast(myVoice()?.serverMuted ? 'Um moderador silenciou você nesta sala.' : 'Você não tem permissão para falar nesta sala.'); return; }
@@ -639,6 +683,126 @@ function remoteVideo(m, kind) {
   return null;
 }
 
+// ---------- janela flutuante (picture-in-picture) ----------
+// No Chrome e no Edge, uma janelinha própria com a transmissão e os botões de microfone e sair.
+// Nos outros (Safari), o picture-in-picture padrão do vídeo.
+let pip = null; // { kind, id, name, win, video }
+const pipStream = (kind, id) => { const m = (S.voice[S.voiceKey] || []).find((x) => x.id === id); return m && m.stream !== false && (kind === 'screen' ? m.sharing : m.camera) ? remoteVideo(m, kind) : null; };
+
+async function openPip(kind, m) {
+  const stream = remoteVideo(m, kind); if (!stream) return;
+  if (pip?.kind === kind && pip.id === m.id) { closePip(); return; }
+  closePip();
+  const label = kind === 'screen' ? `Tela de ${m.name}` : m.name;
+  if (window.documentPictureInPicture?.requestWindow) {
+    try {
+      const win = await documentPictureInPicture.requestWindow({ width: 560, height: 340 });
+      buildPipWindow(win, stream, label);
+      pip = { kind, id: m.id, name: label, win, video: win.document.querySelector('video') };
+      win.addEventListener('pagehide', () => { if (pip?.win === win) { pip = null; renderStage(); } });
+      renderStage();
+      return;
+    } catch (e) { console.warn('janela flutuante própria indisponível', e); }
+  }
+  const v = $('pipVideo');
+  if (!document.pictureInPictureEnabled || !v.requestPictureInPicture) { toast('Este navegador não tem janela flutuante. Use Chrome, Edge ou Safari.'); return; }
+  try {
+    v.srcObject = stream; await v.play();
+    await v.requestPictureInPicture();
+    pip = { kind, id: m.id, name: label, win: null, video: v };
+    renderStage();
+  } catch { v.srcObject = null; toast('Não consegui abrir a janela flutuante.'); }
+}
+$('pipVideo').addEventListener('leavepictureinpicture', () => {
+  const v = $('pipVideo'); v.pause(); v.srcObject = null;
+  if (pip && !pip.win) { pip = null; renderStage(); }
+});
+function closePip() {
+  if (!pip) return;
+  const p = pip; pip = null;
+  if (p.win) { try { p.win.close(); } catch {} }
+  else if (document.pictureInPictureElement) document.exitPictureInPicture().catch(() => {});
+}
+// mantém a janela em dia: a transmissão acabou, mudou de conexão, ou o microfone mudou
+function syncPip() {
+  if (!pip) return;
+  const stream = S.voiceKey && pipStream(pip.kind, pip.id);
+  if (!stream) { closePip(); toast('A transmissão da janela flutuante terminou.'); return; }
+  if (pip.video.srcObject !== stream) { pip.video.srcObject = stream; pip.video.play().catch(() => {}); }
+  if (pip.win) {
+    const d = pip.win.document, mb = d.getElementById('pipMute');
+    const off = S.muted || forcedMute();
+    mb.textContent = off ? 'Microfone desligado' : 'Microfone ligado'; mb.classList.toggle('off', off); mb.disabled = forcedMute() || !A.raw;
+  }
+}
+function buildPipWindow(win, stream, label) {
+  const d = win.document;
+  d.title = label + ' · Junta';
+  const st = d.createElement('style');
+  st.textContent = `
+    :root { color-scheme: dark; font-family: system-ui, -apple-system, "Segoe UI", sans-serif; }
+    html, body { margin: 0; height: 100%; background: #0e1013; color: #e7e9ee; overflow: hidden; }
+    body { display: grid; grid-template-rows: 1fr auto; }
+    video { width: 100%; height: 100%; min-height: 0; object-fit: contain; background: #000; display: block; }
+    .bar { display: flex; gap: 8px; align-items: center; padding: 8px 10px; background: #16191e; font-size: 13px; }
+    .bar .nm { flex: 1; min-width: 0; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; color: #aab0bc; }
+    button { font: inherit; font-size: 12px; border: 0; border-radius: 6px; padding: 7px 10px; cursor: pointer; background: #262b33; color: #e7e9ee; }
+    button:hover { background: #303640; } button.off { background: #4a2a2a; color: #ffb4a9; } button:disabled { opacity: .55; cursor: default; }
+    button.leave { background: #c8453b; color: #fff; } button.leave:hover { background: #d9554a; }
+    body.min .bar { display: none; } body:hover .bar { display: flex; }`;
+  d.head.append(st);
+  const v = d.createElement('video'); v.autoplay = true; v.muted = true; v.playsInline = true; v.srcObject = stream;
+  const bar = d.createElement('div'); bar.className = 'bar';
+  const nm = d.createElement('span'); nm.className = 'nm'; nm.textContent = label;
+  const mute = d.createElement('button'); mute.id = 'pipMute'; mute.onclick = () => { toggleMute(); syncPip(); };
+  const back = d.createElement('button'); back.textContent = 'Voltar'; back.title = 'Voltar para o Junta';
+  back.onclick = () => { window.focus(); closePip(); };
+  const leave = d.createElement('button'); leave.className = 'leave'; leave.textContent = 'Sair da sala'; leave.onclick = () => leaveVoice();
+  bar.append(nm, mute, back, leave);
+  d.body.append(v, bar);
+  v.play().catch(() => {});
+  // janela pequena: a barra só aparece com o mouse em cima
+  const fit = () => d.body.classList.toggle('min', win.innerHeight < 200);
+  win.addEventListener('resize', fit); fit();
+  setTimeout(syncPip, 0);
+}
+
+// ---------- só receber vídeo que está sendo visto ----------
+// Cada transmissão é enviada separadamente para cada pessoa. Quando você não está vendo a tela
+// ou a câmera de alguém (outro canal aberto, aba minimizada), o Junta avisa essa pessoa para
+// pausar o vídeo só para você: economiza o upload dela e o processamento do seu computador.
+// O som da transmissão continua.
+const WANT_OFF_DELAY = 3000; // espera um pouco antes de pausar, para não piscar ao trocar de aba rápido
+function stageVisible() {
+  return !!S.voiceKey && !document.hidden && !S.home && !$('voiceView').hidden && keyOf(S.serverId, S.channelId) === S.voiceKey;
+}
+function updateWants() {
+  if (!S.voiceKey) return;
+  const vis = stageVisible();
+  const now = Date.now();
+  for (const m of S.voice[S.voiceKey] || []) {
+    const p = S.peers[m.id]; if (!p || m.id === S.me.id) continue;
+    const want = {
+      screen: vis || (pip?.kind === 'screen' && pip.id === m.id),
+      cam: vis || (pip?.kind === 'cam' && pip.id === m.id),
+    };
+    const sent = p.sentWant || { screen: true, cam: true };
+    const out = { ...sent };
+    for (const k of ['screen', 'cam']) {
+      if (want[k]) { out[k] = true; p.offSince && delete p.offSince[k]; }
+      else if (sent[k]) { p.offSince ||= {}; p.offSince[k] ||= now; if (now - p.offSince[k] >= WANT_OFF_DELAY) out[k] = false; }
+    }
+    if (out.screen !== sent.screen || out.cam !== sent.cam) {
+      p.sentWant = out;
+      socket.emit('signal', { to: m.id, data: { want: out } });
+    }
+  }
+}
+let wantsT = null;
+function scheduleWants() { clearTimeout(wantsT); wantsT = setTimeout(updateWants, 50); }
+setInterval(() => { updateWants(); syncPip(); }, 1000);
+document.addEventListener('visibilitychange', scheduleWants);
+
 // ---------- WebRTC (malha, negociação "perfect negotiation") ----------
 function getPeer(id) {
   if (S.peers[id]) return S.peers[id];
@@ -708,6 +872,9 @@ socket.on('signal', async ({ from, data }) => {
       tuneSenders(p);
     } else if (data.candidate) {
       try { await pc.addIceCandidate(data.candidate); } catch (e) { if (!p.ignoreOffer) console.warn(e); }
+    } else if (data.want) { // quem assiste avisou o que está vendo
+      p.want = { screen: data.want.screen !== false, cam: data.want.cam !== false };
+      tuneSenders(p);
     }
   } catch (e) { console.error(e); }
 });

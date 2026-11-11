@@ -20,6 +20,7 @@ function selectHome() {
   showDmEmpty();
 }
 function showDmEmpty() {
+  closeSideChat(true);
   $('topMark').textContent = '@'; $('channelTitle').textContent = 'Mensagens diretas'; $('channelSub').textContent = '';
   $('textView').hidden = true; $('voiceView').hidden = true; $('dmEmpty').hidden = false;
   renderRail(); renderChannels(); renderMembers();
@@ -29,6 +30,7 @@ $('homeBtn').onclick = () => { selectHome(); $('app').classList.remove('drawer')
 function openDm(uid, opts = {}) {
   if (uid === S.me.uid || !S.users.has(uid)) return;
   S.home = true; S.dmKey = dmKeyWith(uid);
+  closeSideChat(true);
   try { localStorage.setItem('junta:last', S.dmKey); } catch {}
   const name = userName(uid);
   $('topMark').textContent = '@'; $('channelTitle').textContent = name;

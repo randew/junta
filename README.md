@@ -40,6 +40,11 @@ O navegador só libera microfone, câmera e captura de tela em **HTTPS** (ou em 
    - Ao migrar para uma VPS, troque no DNS da Cloudflare o registro do túnel por um registro **A** com o IP da VPS.
 3. **Deploy** em Render, Railway ou Fly.io: é um app Node comum, comando de start `npm start`, porta lida de `PORT`. Veja os limites no fim.
 
+## Layout
+
+- **Larguras:** arraste a borda da lista de canais, da lista de membros ou do chat ao lado da sala. Duplo clique na borda volta ao padrão. Fica salvo no navegador.
+- **Conversas longas:** a tela guarda no máximo 250 mensagens. Rolando para cima ou para baixo, as do outro extremo saem e são buscadas de novo quando você voltar, então o Junta não fica pesado depois de horas aberto.
+
 ## Contas, convites e administração
 
 - Na primeira vez que o servidor liga, o terminal mostra um **código de convite**. Abra o Junta, clique em **Criar conta** e use esse código. **Quem criar a primeira conta vira o dono do Junta.**
@@ -110,6 +115,10 @@ Cada servidor tem os próprios cargos. Abra a engrenagem ao lado do nome do serv
   - **Movimento**: 1080p a 60 fps, até 8 Mbps, prefere H.264. Ideal para jogos e vídeos.
   - **Equilibrado**: 1080p a 30 fps, até 5 Mbps, prefere VP9. Para internet mais fraca.
 - **Áudio** (dentro da sala): microfone, **apertar para falar** (tecla padrão `V`), **supressão de ruído** por IA, **modo música** (estéreo a 128 kbps) e avisos sonoros de entrada e saída.
+- **Destaque:** clique numa tela compartilhada (ou no botão ⛶ de uma câmera) para deixá-la grande, com as outras pessoas numa faixa embaixo. Clique de novo ou aperte Esc para voltar. Duplo clique: tela cheia.
+- **Chat ao lado:** o botão **Chat** da sala abre um canal de texto do servidor ao lado do palco, para conversar enquanto assiste. Escolha o canal no topo do chat. Se você deixar aberto, ele volta sozinho da próxima vez que estiver na sala.
+- **Janela flutuante:** o botão ▣ de uma tela ou câmera abre a transmissão numa janelinha por cima de tudo, para continuar vendo enquanto usa outro programa. No Chrome e no Edge ela tem os botões de microfone e de sair; no Safari é o picture-in-picture padrão.
+- **Economia de banda:** quando você não está vendo as transmissões (outro canal aberto, aba minimizada), o Junta pede para quem transmite pausar o vídeo só para você, depois de 3 segundos. O som continua. Ao voltar, a imagem retorna em instantes. Isso alivia o upload de quem transmite.
 - **Volume por pessoa:** clique no bloco de alguém na sala; cada transmissão de tela tem o próprio controle.
 - A banda de cada espectador sai da internet de **quem transmite**: com várias pessoas assistindo, o upload é dividido entre elas.
 
@@ -136,7 +145,7 @@ lib/servers.js       criar/apagar servidores e canais, perfil e apelidos
 lib/voice.js         salas de voz e sinalização WebRTC
 lib/realtime.js      quem está online e em cada sala
 lib/admin.js         contas (dono) e backups
-public/js/*.js       a interface, um arquivo por assunto (core → … → auth, nesta ordem)
+public/js/*.js       a interface, um arquivo por assunto (core → … → auth, nesta ordem; panels.js: larguras e chat ao lado da sala)
 test/                testes automáticos
 ```
 

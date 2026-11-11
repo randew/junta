@@ -15,6 +15,7 @@ socket.on('servers', (servers) => {
   $('channelTitle').textContent = c.name;
   $('channelSub').textContent = c.type === 'text' ? `Conversa em ${currentServer().name}` : 'Voz e compartilhamento de tela';
   if (c.type === 'text') $('msgInput').placeholder = `Mensagem em #${c.name}`;
+  refreshSideChat();
 });
 socket.on('voice-kicked', (d) => {
   if (!S.voiceKey) return;

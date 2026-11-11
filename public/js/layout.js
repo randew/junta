@@ -252,12 +252,14 @@ function selectChannel(id, opts = {}) {
   $('textView').hidden = c.type !== 'text';
   $('voiceView').hidden = c.type !== 'voice';
   if (c.type === 'text') {
+    rememberText(S.serverId, id);
     $('msgInput').placeholder = `Mensagem em #${c.name}`;
     openText(keyOf(S.serverId, id), opts);
     updateComposer();
   } else {
     renderStage();
   }
+  syncSideChat();
   renderRail(); renderChannels(); renderMembers();
 }
 
