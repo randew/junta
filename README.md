@@ -17,6 +17,7 @@ Abra http://localhost:3000. Para testar sozinho, abra uma segunda aba (ou outro 
 
 - **`iniciar.bat`**: instala o que faltar, liga o servidor e abre http://localhost:3000.
 - **`iniciar-com-amigos.bat`**: o mesmo, e abre uma segunda janela com o link público para mandar aos amigos.
+- **`configurar-dominio.bat`**: liga um domínio seu ao Junta deste PC (veja "Usar com amigos").
 - **`iniciar.command`**: atalho para Mac ou Linux (`./iniciar.command amigos` para também criar o link).
 
 Abra só um deles por vez. Se a pasta tiver sido baixada com `git clone`, os atalhos baixam a versão mais nova (`git pull`) antes de iniciar.
@@ -30,7 +31,13 @@ O navegador só libera microfone, câmera e captura de tela em **HTTPS** (ou em 
    npx cloudflared tunnel --url http://localhost:3000
    ```
    Mande o link `https://...trycloudflare.com` que aparecer.
-2. **Deploy** em Render, Railway ou Fly.io: é um app Node comum, comando de start `npm start`, porta lida de `PORT`. Veja os limites no fim.
+2. **Domínio próprio** (endereço fixo, ex.: `https://juntaai.stream`), ainda rodando no seu PC:
+   1. Crie uma conta grátis na [Cloudflare](https://dash.cloudflare.com), clique em **Adicionar domínio**, escolha o plano **Free** e troque os *nameservers* no site onde comprou o domínio pelos dois que a Cloudflare mostrar. Espere o domínio ficar **Active** (minutos a algumas horas).
+   2. Dê dois cliques em **`configurar-dominio.bat`** (uma vez só). Ele abre o navegador para você autorizar, cria o túnel `junta`, aponta o domínio para ele e salva `tunel.yml`.
+   3. Daí em diante o **`iniciar-com-amigos.bat`** usa o domínio em vez do link aleatório. Sem `tunel.yml`, ele volta ao túnel rápido.
+   - Rode o túnel em **um computador só** por vez: o túnel fica ligado ao PC onde foi criado (a credencial fica em `%USERPROFILE%\.cloudflared`).
+   - Ao migrar para uma VPS, troque no DNS da Cloudflare o registro do túnel por um registro **A** com o IP da VPS.
+3. **Deploy** em Render, Railway ou Fly.io: é um app Node comum, comando de start `npm start`, porta lida de `PORT`. Veja os limites no fim.
 
 ## Contas, convites e administração
 

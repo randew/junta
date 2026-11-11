@@ -27,11 +27,19 @@ if errorlevel 1 (
 )
 
 start "" /b cmd /c "ping -n 3 127.0.0.1 >nul & start http://localhost:3000"
-rem o tunel abre numa segunda janela; o link https://...trycloudflare.com aparece nela
-start "Junta - link para amigos" cmd /k "ping -n 4 127.0.0.1 >nul & npx --yes cloudflared tunnel --url http://127.0.0.1:3000"
 echo.
-echo Junta iniciando. O link para os amigos aparece na outra janela,
-echo numa linha com "trycloudflare.com". Para encerrar, feche as duas janelas.
+if exist "tunel.yml" (
+  rem dominio proprio, configurado pelo configurar-dominio.bat
+  for /f "tokens=3" %%h in ('findstr /c:"hostname:" tunel.yml') do set "DOMINIO=%%h"
+  start "Junta - tunel" cmd /k "ping -n 4 127.0.0.1 >nul & npx --yes cloudflared tunnel --config tunel.yml run junta"
+  call echo Junta iniciando. Link para os amigos: https://%%DOMINIO%%
+) else (
+  rem sem dominio: link temporario, muda a cada vez
+  start "Junta - link para amigos" cmd /k "ping -n 4 127.0.0.1 >nul & npx --yes cloudflared tunnel --url http://127.0.0.1:3000"
+  echo Junta iniciando. O link para os amigos aparece na outra janela,
+  echo numa linha com "trycloudflare.com".
+)
+echo Para encerrar, feche as duas janelas.
 echo.
 call npm start
 pause
