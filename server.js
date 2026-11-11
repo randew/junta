@@ -7,6 +7,8 @@ if (major < 22 || (major === 22 && minor < 13)) {
 const express = require('express');
 const http = require('http');
 const path = require('path');
+const fs = require('fs');
+const crypto = require('crypto');
 const { Server } = require('socket.io');
 
 const { db, inviteCode, DATA_DIR } = require('./lib/db');
@@ -22,6 +24,13 @@ const { createTurn } = require('./lib/turn');
 const { createTurnUsage } = require('./lib/turn-usage');
 const { createRealtime } = require('./lib/realtime');
 const { serverList, dmList } = require('./lib/channels');
+
+// A página aponta para cada CSS/JS com uma "versão" (hash do conteúdo): quando o arquivo muda,
+// o endereço muda e nenhum navegador ou cache da Cloudflare fica com a cópia antiga.
+const PUBLIC = path.join(__dirname, 'public');
+const hashOf = (rel) => { try { return crypto.createHash('sha1').update(fs.readFileSync(path.join(PUBLIC, rel))).digest('hex').slice(0, 10); } catch { return '0'; } };
+const renderIndex = () => fs.readFileSync(path.join(PUBLIC, 'index.html'), 'utf8')
+  .replace(/(src|href)="((?:js\/[\w.-]+\.js)|style\.css)"/g, (m, attr, file) => `${attr}="${file}?v=${hashOf(file)}"`);
 
 function start({ port = process.env.PORT || 3000, backups = true, log = console.log } = {}) {
   const app = express();
@@ -39,7 +48,12 @@ function start({ port = process.env.PORT || 3000, backups = true, log = console.
   const ctx = { io, rt: createRealtime(io), MAX_FILE_MB: 25, MAX_FILES: 10 };
 
   app.use(express.json({ limit: '20kb' }));
-  app.use(express.static(path.join(__dirname, 'public')));
+  app.get(['/', '/index.html'], (req, res) => res.set('Cache-Control', 'no-cache').type('html').send(renderIndex()));
+  app.use(express.static(PUBLIC, {
+    index: false,
+    // com versão no endereço: pode guardar por um ano; sem versão: sempre confere se mudou
+    setHeaders: (res) => res.set('Cache-Control', res.req?.query?.v ? 'public, max-age=31536000, immutable' : 'no-cache'),
+  }));
   app.use('/vendor/nsup', express.static(path.join(__dirname, 'node_modules/@sapphi-red/web-noise-suppressor/dist')));
   accounts.routes(app, ctx);
   files.routes(app, ctx);
