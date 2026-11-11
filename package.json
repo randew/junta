@@ -4,14 +4,15 @@
   "description": "Chat em tempo real com canais de texto, salas de voz e compartilhamento de tela",
   "main": "server.js",
   "scripts": {
-    "start": "node server.js"
+    "start": "node --disable-warning=ExperimentalWarning server.js"
   },
   "engines": {
-    "node": ">=18"
+    "node": ">=22.13"
   },
   "dependencies": {
     "@sapphi-red/web-noise-suppressor": "0.3.5",
     "express": "^4.21.2",
+    "multer": "^2.5.0",
     "socket.io": "^4.8.1"
   }
 }

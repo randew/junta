@@ -4,7 +4,7 @@ Chat em tempo real no estilo Discord: servidores, canais de texto, salas de voz 
 
 ## Rodar no seu computador
 
-Precisa do Node.js 18 ou mais novo.
+Precisa do Node.js **22.13 ou mais novo** (a versão LTS atual do nodejs.org serve). Confira com `node -v`.
 
 ```bash
 npm install
@@ -20,6 +20,22 @@ Abra http://localhost:3000. Para testar sozinho, abra uma segunda aba (ou outro 
 - **`iniciar.command`**: atalho para Mac ou Linux (`./iniciar.command amigos` para também criar o link).
 
 Se a pasta tiver sido baixada com `git clone`, os atalhos baixam a versão mais nova (`git pull`) antes de iniciar.
+
+## Contas e convites
+
+- Na primeira vez que o servidor liga, o terminal mostra um **código de convite**. Abra o Junta, clique em **Criar conta** e use esse código. **A primeira conta criada vira a dona do Junta.**
+- Para chamar amigos: clique no seu nome (canto inferior esquerdo) → **Convidar amigos** → **Copiar convite**. O código é pedido só na criação da conta. **Gerar código novo** invalida o anterior, útil se ele vazou.
+- Só a dona cria e apaga servidores e canais, e pode apagar qualquer mensagem. Cada pessoa edita e apaga as próprias mensagens (passe o mouse sobre a mensagem, ou aperte **↑** com a caixa de texto vazia para editar a última).
+- O login fica salvo por 60 dias. **Sair da conta** fica no mesmo menu do seu nome.
+- O lápis ao lado do seu nome troca o **nome de exibição**; o usuário de login não muda.
+
+## Mensagens e anexos
+
+- Tudo fica salvo na pasta **`dados/`** (banco `junta.db` e arquivos em `anexos/`). Reiniciar o servidor ou atualizar o código não apaga nada.
+- **Backup:** feche o Junta e copie a pasta `dados` para outro lugar. Para restaurar, coloque-a de volta.
+- Anexe pelo clipe, arrastando arquivos para a conversa ou colando uma imagem (Ctrl+V). Até 10 arquivos de 25 MB por mensagem. Imagens, vídeos e áudios aparecem na conversa; o resto vira um cartão para baixar.
+- Os anexos só abrem para quem está logado. Arquivos de página (HTML, SVG etc.) sempre são baixados, nunca abertos no navegador.
+- Role a conversa para cima para carregar mensagens antigas.
 
 ## Usar com amigos
 
@@ -55,7 +71,8 @@ Clique no seu nome, no canto inferior esquerdo, para escolher Online, Ausente ou
 
 ## Como funciona
 
-- `server.js`: Express + Socket.IO. Guarda servidores, canais e as últimas 300 mensagens de cada canal **em memória** (somem ao reiniciar) e repassa a sinalização WebRTC entre quem está na mesma sala de voz.
+- `server.js`: Express + Socket.IO. Contas (senha com hash scrypt, sessão em cookie HttpOnly), mensagens, anexos e a sinalização WebRTC entre quem está na mesma sala de voz.
+- `db.js`: banco SQLite embutido no Node, em `dados/junta.db`. A pasta pode ser trocada com a variável `JUNTA_DATA`.
 - `public/app.js`: interface e WebRTC em malha (cada pessoa conecta direto com cada outra). Áudio e tela vão ponta a ponta, sem passar pelo servidor.
 - Tela compartilhada com três predefinições, escolhidas ao clicar em **Compartilhar tela**:
   - **Nitidez**: até 1440p a 30 fps, até 8 Mbps, prefere AV1. Ideal para texto.
@@ -68,6 +85,6 @@ Clique no seu nome, no canto inferior esquerdo, para escolher Online, Ausente ou
 
 - **Rede:** só usa STUN do Google. Em redes corporativas ou 4G com NAT restritivo a conexão de voz/tela pode falhar; nesse caso adicione um servidor TURN (ex.: coturn ou Metered) em `ICE` no topo de `public/app.js`.
 - **Tamanho da sala:** a malha funciona bem até umas 5–6 pessoas. Para mais gente, troque por um SFU (LiveKit, mediasoup).
-- **Sem contas nem permissões:** qualquer pessoa com o link entra e cria canais. Para uso público, adicione login.
-- **Persistência:** para guardar mensagens, troque os objetos em memória por SQLite ou Postgres.
+- **Esqueceu a senha:** ainda não há recuperação por e-mail. A dona pode apagar a conta direto no banco, e a pessoa cria outra.
+- **Render (plano grátis):** o disco é apagado a cada atualização, então mensagens e anexos se perderiam lá. Para hospedar fora do seu PC, seria preciso um banco e um armazenamento de arquivos externos.
 - Compartilhar tela pelo celular não é suportado pela maioria dos navegadores; assistir funciona.

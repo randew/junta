@@ -46,6 +46,11 @@
         <button role="menuitem" data-status="online"><span class="sdot s-online"></span><span><strong>Online</strong></span></button>
         <button role="menuitem" data-status="idle"><span class="sdot s-idle"></span><span><strong>Ausente</strong><small>Também liga sozinho com a aba em segundo plano.</small></span></button>
         <button role="menuitem" data-status="dnd"><span class="sdot s-dnd"></span><span><strong>Não perturbe</strong><small>Mostra aos outros que você está ocupado.</small></span></button>
+        <div class="menu-sep" role="separator"></div>
+        <div id="ownerItems" hidden>
+          <button role="menuitem" data-action="invite"><span class="menu-ic">＋</span><span><strong>Convidar amigos</strong><small>Ver e copiar o código de convite.</small></span></button>
+        </div>
+        <button role="menuitem" data-action="logout"><span class="menu-ic">⎋</span><span><strong>Sair da conta</strong></span></button>
       </div>
       <button class="icon-btn" id="renameBtn" title="Trocar nome" aria-label="Trocar nome">
         <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.21a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
@@ -74,9 +79,15 @@
     <section class="text-view" id="textView">
       <div class="messages" id="messages" aria-live="polite"></div>
       <div class="typing" id="typing"></div>
+      <div class="drop-zone" id="dropZone" hidden><div>Solte para anexar</div></div>
+      <div class="tray" id="tray" hidden></div>
       <form class="composer" id="composer" autocomplete="off">
+        <button type="button" class="icon-btn attach" id="attachBtn" title="Anexar arquivos" aria-label="Anexar arquivos">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M16.5 6v11.5a4 4 0 0 1-8 0V5a2.5 2.5 0 0 1 5 0v10.5a1 1 0 0 1-2 0V6H10v9.5a2.5 2.5 0 0 0 5 0V5a4 4 0 0 0-8 0v12.5a5.5 5.5 0 0 0 11 0V6h-1.5z"/></svg>
+        </button>
+        <input type="file" id="fileInput" multiple hidden>
         <textarea id="msgInput" rows="1" placeholder="Mensagem"></textarea>
-        <button type="submit" class="send" aria-label="Enviar">
+        <button type="submit" class="send" id="sendBtn" aria-label="Enviar">
           <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
         </button>
       </form>
@@ -138,6 +149,42 @@
       <button type="submit" class="primary" id="modalOk">OK</button>
     </div>
   </form>
+</div>
+
+<!-- Login -->
+<div class="auth" id="auth" hidden>
+  <div class="auth-card">
+    <div class="auth-brand"><span class="rail-logo">J</span><h1>Junta</h1></div>
+    <div class="auth-tabs" role="tablist">
+      <button type="button" role="tab" id="tabLogin" aria-selected="true">Entrar</button>
+      <button type="button" role="tab" id="tabSignup" aria-selected="false">Criar conta</button>
+    </div>
+    <form id="authForm" class="auth-form">
+      <label class="field" for="authUser"><span class="lbl">Usuário</span>
+        <input id="authUser" autocomplete="username" required minlength="3" maxlength="24" autocapitalize="none" spellcheck="false"></label>
+      <label class="field" for="authPass"><span class="lbl">Senha</span>
+        <input id="authPass" type="password" autocomplete="current-password" required minlength="6" maxlength="200"></label>
+      <label class="field" for="authInvite" id="inviteField" hidden><span class="lbl">Código de convite</span>
+        <input id="authInvite" placeholder="ABCD-2345" autocomplete="off" autocapitalize="characters" spellcheck="false" maxlength="20"></label>
+      <p class="auth-error" id="authError" role="alert" hidden></p>
+      <button class="primary" id="authSubmit" type="submit">Entrar</button>
+      <p class="auth-hint" id="authHint"></p>
+    </form>
+  </div>
+</div>
+
+<!-- Convite (dono) -->
+<div class="modal-back" id="inviteModal" hidden>
+  <div class="modal" role="dialog" aria-modal="true" aria-labelledby="inviteTitle">
+    <h3 id="inviteTitle">Convidar amigos</h3>
+    <p>Mande o endereço do Junta e este código. Ele é pedido só na hora de criar a conta.</p>
+    <div class="invite-code" id="inviteCode">—</div>
+    <div class="modal-actions">
+      <button type="button" class="ghost" id="inviteNew">Gerar código novo</button>
+      <button type="button" class="ghost" id="inviteClose">Fechar</button>
+      <button type="button" class="primary" id="inviteCopy">Copiar convite</button>
+    </div>
+  </div>
 </div>
 
 <!-- Escolha da qualidade antes de compartilhar a tela -->
