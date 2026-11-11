@@ -8,6 +8,22 @@ function renderRail() {
   const home = $('homeBtn'); home.classList.toggle('active', S.home);
   home.querySelector('.badge')?.remove();
   const dm = dmUnread(); if (dm) home.append(badge(dm));
+  // como no Discord: quem mandou mensagem direta que você ainda não leu aparece na barra, logo abaixo do início
+  const dmBox = $('railDms'); const had = new Set([...dmBox.children].map((x) => x.dataset.key));
+  dmBox.replaceChildren();
+  const pending = Object.entries(S.unread).filter(([k, u]) => isDmKey(k) && u.m && !(S.home && S.dmKey === k))
+    .map(([k, u]) => ({ key: k, m: u.m, last: S.dms.find((d) => d.key === k)?.last || 0 }))
+    .sort((a, b) => b.last - a.last).slice(0, 5);
+  for (const d of pending) {
+    const uid = dmOther(d.key), name = userName(uid, null);
+    const b = el('button', 'rail-btn rail-dm' + (had.has(d.key) ? '' : ' pop')); b.type = 'button'; b.dataset.key = d.key;
+    b.append(avatar(name, uid), badge(d.m));
+    b.title = `${name}: ${d.m} ${d.m === 1 ? 'mensagem nova' : 'mensagens novas'}`;
+    b.setAttribute('aria-label', `Mensagem direta de ${name}, ${d.m} ${d.m === 1 ? 'nova' : 'novas'}`);
+    b.onclick = () => { openDm(uid); $('app').classList.remove('drawer'); };
+    dmBox.append(b);
+  }
+  dmBox.hidden = !pending.length;
   const list = $('serverList'); list.replaceChildren();
   for (const s of S.servers) {
     const u = unreadIn(s.id);

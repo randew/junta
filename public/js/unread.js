@@ -54,6 +54,8 @@ function renderUnread() {
   const mentions = Object.values(S.unread).reduce((t, u) => t + u.m, 0);
   const any = Object.keys(S.unread).length > 0;
   document.title = mentions ? `(${mentions}) Junta` : any ? '• Junta' : 'Junta';
+  // celular: a barra fica escondida no menu ☰, então o botão avisa que tem menção ou mensagem direta
+  $('menuBtn').classList.toggle('has-unread', mentions > 0);
 }
 const badge = (n) => el('span', 'badge', n > 99 ? '99+' : String(n));
 

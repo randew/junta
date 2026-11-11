@@ -894,3 +894,16 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 @media (hover: none) and (pointer: coarse) {
   input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]), textarea, select { font-size: 16px !important; }
 }
+
+/* mensagens diretas não lidas na barra de servidores (abaixo do início) */
+.rail-dms { display: flex; flex-direction: column; align-items: center; gap: 8px; }
+.rail-dm { padding: 0; background: none; }
+.rail-dm .avatar { width: 48px; height: 48px; border-radius: 50%; font-size: 17px; transition: border-radius .15s; overflow: hidden; }
+.rail-dm:hover .avatar { border-radius: 14px; }
+.rail-dm:hover { background: none; }
+.rail-dm .badge { position: absolute; right: -4px; bottom: -4px; top: auto; border: 3px solid var(--ink-0); }
+.rail-dm.pop { animation: dmPop .35s cubic-bezier(.2, 1.4, .4, 1); }
+@keyframes dmPop { from { transform: scale(.3); opacity: 0; } to { transform: scale(1); opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .rail-dm.pop { animation: none; } }
+#menuBtn { position: relative; }
+#menuBtn.has-unread::after { content: ""; position: absolute; top: 4px; right: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--danger); border: 2px solid var(--ink-2); }
