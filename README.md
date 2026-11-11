@@ -18,7 +18,8 @@ Abra http://localhost:3000. Para testar sozinho, abra uma segunda aba (ou outro 
 - **`iniciar.bat`**: instala o que faltar, liga o servidor e abre http://localhost:3000.
 - **`iniciar-com-amigos.bat`**: o mesmo, e abre uma segunda janela com o link público para mandar aos amigos.
 - **`configurar-dominio.bat`**: liga um domínio seu ao Junta deste PC (veja "Usar com amigos").
-- **`iniciar.command`**: atalho para Mac ou Linux (`./iniciar.command amigos` para também criar o link).
+- **`iniciar.command`** e **`iniciar-com-amigos.command`**: os mesmos atalhos para Mac (ou Linux). Na primeira vez no Mac, use botão direito → **Abrir**.
+- **`configurar-dominio.command`**: a versão Mac do `configurar-dominio.bat`.
 
 Abra só um deles por vez. Se a pasta tiver sido baixada com `git clone`, os atalhos baixam a versão mais nova (`git pull`) antes de iniciar.
 
