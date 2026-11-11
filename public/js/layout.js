@@ -154,14 +154,28 @@ statusMenu.addEventListener('keydown', (e) => {
   else if (e.key === 'ArrowUp') { e.preventDefault(); items[(i - 1 + items.length) % items.length].focus(); }
 });
 
-// painel de membros: aberto por padrão em telas largas
-let showMembers = (() => { try { const v = localStorage.getItem('junta:members'); return v === null ? null : v === '1'; } catch { return null; } })();
-if (showMembers === null) showMembers = window.innerWidth > 1100;
+// painel de membros: em telas largas fica ao lado da conversa (e o Junta lembra se você o fechou);
+// no celular e em janelas estreitas ele abre por cima, só quando você toca no botão, e fecha ao tocar fora
+const narrowMQ = matchMedia('(max-width: 1100px)');
+let showMembers = (() => { try { const v = localStorage.getItem('junta:members'); return v === null ? true : v === '1'; } catch { return true; } })();
+let membersOverlay = false;
 function applyMembersVisible() {
-  $('app').classList.toggle('no-members', !showMembers);
-  $('membersBtn').setAttribute('aria-pressed', String(showMembers));
+  const narrow = narrowMQ.matches, visible = narrow ? membersOverlay : showMembers;
+  $('app').classList.toggle('no-members', !visible);
+  $('app').classList.toggle('members-open', narrow && visible);
+  $('membersBtn').setAttribute('aria-pressed', String(visible));
 }
-$('membersBtn').onclick = () => { showMembers = !showMembers; try { localStorage.setItem('junta:members', showMembers ? '1' : '0'); } catch {} applyMembersVisible(); };
+function closeMembersOverlay() { if (membersOverlay) { membersOverlay = false; applyMembersVisible(); } }
+$('membersBtn').onclick = () => {
+  if (narrowMQ.matches) { membersOverlay = !membersOverlay; $('app').classList.remove('drawer'); }
+  else { showMembers = !showMembers; try { localStorage.setItem('junta:members', showMembers ? '1' : '0'); } catch {} }
+  applyMembersVisible();
+};
+narrowMQ.addEventListener('change', () => { membersOverlay = false; applyMembersVisible(); });
+document.addEventListener('pointerdown', (e) => {
+  if (membersOverlay && !e.target.closest('#members, #membersBtn, .profile-card, #pcard, .modal-back')) closeMembersOverlay();
+});
+document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && membersOverlay && $('modal').hidden) closeMembersOverlay(); });
 applyMembersVisible();
 
 const isOwner = () => S.me.role === 'owner';
@@ -282,5 +296,5 @@ $('addServerBtn').onclick = async () => {
 
 $('renameBtn').onclick = () => openProfileEditor();
 
-$('menuBtn').onclick = () => $('app').classList.toggle('drawer');
+$('menuBtn').onclick = () => { closeMembersOverlay(); $('app').classList.toggle('drawer'); };
 $('app').addEventListener('click', (e) => { if (e.target === $('app')) $('app').classList.remove('drawer'); });
