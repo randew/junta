@@ -133,9 +133,7 @@ async function openPins() {
   pinsKey = key;
   pop.replaceChildren(el('p', 'side-empty', 'Carregando…'));
   pop.hidden = false; $('pinsBtn').setAttribute('aria-expanded', 'true');
-  const r = $('pinsBtn').getBoundingClientRect();
-  pop.style.top = (r.bottom + 6) + 'px';
-  pop.style.right = Math.max(8, innerWidth - r.right) + 'px';
+  placePins();
   await fillPins();
 }
 async function fillPins() {
@@ -166,6 +164,16 @@ async function fillPins() {
     pop.append(card);
   }
 }
+// abaixo do botão, alinhado pela direita, mas sempre dentro da tela (no celular, de ponta a ponta)
+function placePins() {
+  const pop = $('pinsPop'), r = $('pinsBtn').getBoundingClientRect(), m = 8;
+  const W = Math.min(420, innerWidth - m * 2);
+  pop.style.width = W + 'px'; pop.style.right = 'auto';
+  pop.style.left = Math.max(m, Math.min(innerWidth - W - m, r.right - W)) + 'px';
+  pop.style.top = (r.bottom + 6) + 'px';
+  pop.style.maxHeight = Math.max(200, Math.min(560, innerHeight - r.bottom - 6 - m)) + 'px';
+}
+addEventListener('resize', () => { if (!$('pinsPop').hidden) placePins(); });
 function closePins() { $('pinsPop').hidden = true; pinsKey = null; $('pinsBtn').setAttribute('aria-expanded', 'false'); }
 $('pinsBtn').onclick = openPins;
 document.addEventListener('mousedown', (e) => { if (!$('pinsPop').hidden && !e.target.closest('#pinsPop, #pinsBtn')) closePins(); });
