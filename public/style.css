@@ -887,3 +887,10 @@ body.resizing video, body.resizing iframe { pointer-events: none; }
 .se-checks label { display: flex; gap: 8px; align-items: center; }
 @media (max-width: 560px) { .se-grid { grid-template-columns: 1fr; } }
 .se-modal input[type=range], .se-modal input[type=checkbox] { accent-color: var(--amber); }
+
+/* Celular: o iPhone dá zoom sozinho ao tocar num campo com letra menor que 16 px.
+   Em telas de toque, todos os campos usam 16 px (o zoom com dois dedos continua funcionando). */
+html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
+@media (hover: none) and (pointer: coarse) {
+  input:not([type=checkbox]):not([type=radio]):not([type=range]):not([type=file]), textarea, select { font-size: 16px !important; }
+}
