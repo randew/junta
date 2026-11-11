@@ -19,6 +19,7 @@ const servers = require('./lib/servers');
 const voice = require('./lib/voice');
 const roles = require('./lib/roles');
 const { createTurn } = require('./lib/turn');
+const { createTurnUsage } = require('./lib/turn-usage');
 const { createRealtime } = require('./lib/realtime');
 const { serverList, dmList } = require('./lib/channels');
 
@@ -49,6 +50,13 @@ function start({ port = process.env.PORT || 3000, backups = true, log = console.
   app.get('/api/ice', accounts.auth, async (req, res) => {
     const { iceServers, turn: on } = await turn.get();
     res.set('Cache-Control', 'no-store').json({ iceServers, turn: on });
+  });
+  // consumo do TURN na Cloudflare (painel de administração)
+  const turnUsage = createTurnUsage(DATA_DIR);
+  app.get('/api/admin/turn-usage', accounts.auth, accounts.ownerOnly, async (req, res) => {
+    const usage = await turnUsage.get(req.query.force === '1');
+    const t = turn.status();
+    res.set('Cache-Control', 'no-store').json({ turn: { configured: t.configured, error: t.error }, usage });
   });
 
   // ---------- conexão em tempo real (só com login) ----------

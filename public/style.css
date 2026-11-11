@@ -747,3 +747,23 @@ body.resizing video, body.resizing iframe { pointer-events: none; }
 .conn-row.direct .conn-tag { color: var(--live); }
 .conn-row.turn .conn-tag { color: var(--amber); }
 .conn-row.bad .conn-tag { color: var(--danger); }
+
+/* painel de administração: consumo do TURN */
+.turn-status { font-size: 13px; margin: 4px 0 12px; }
+.turn-status.ok { color: var(--live); } .turn-status.off { color: var(--fg-dim); }
+.turn-month { display: grid; gap: 6px; padding: 12px 14px; border-radius: 8px; background: var(--ink-2); }
+.turn-big strong { font-family: var(--display); font-size: 26px; font-variant-numeric: tabular-nums; }
+.turn-big span { color: var(--fg-dim); font-size: 14px; }
+.turn-bar { height: 8px; border-radius: 4px; background: var(--ink-4); overflow: hidden; }
+.turn-bar i { display: block; height: 100%; background: var(--live); border-radius: 4px; }
+.turn-bar.warn i { background: var(--amber); }
+.turn-now { font-size: 13px; margin: 12px 0 16px; }
+.turn-days { display: grid; grid-template-columns: repeat(7, 1fr); gap: 6px; margin: 6px 0 8px; }
+.turn-day { display: grid; grid-template-rows: auto 90px auto; gap: 4px; text-align: center; min-width: 0; }
+.turn-col { display: flex; align-items: flex-end; background: var(--ink-2); border-radius: 4px; overflow: hidden; }
+.turn-col i { display: block; width: 100%; background: var(--amber); border-radius: 3px 3px 0 0; }
+.turn-val { font-size: 10px; color: var(--fg-dim); font-family: var(--mono); white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.turn-dl { font-size: 11px; color: var(--fg-dim); text-transform: capitalize; }
+#adminTurn .ghost-btn { margin-top: 6px; }
+.admin-modal .auth-tabs { grid-template-columns: repeat(3, 1fr); }
+#turnUsage > .lbl { margin-top: 4px; }

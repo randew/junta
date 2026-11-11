@@ -374,3 +374,36 @@ test('TURN: credenciais da Cloudflare, sem a porta 53, e STUN quando não há ch
     delete process.env.JUNTA_TURN_API; fake.close(); fs.rmSync(dir, { recursive: true, force: true });
   }
 });
+
+test('TURN: consumo do mês, últimos 7 dias e conexões agora', async () => {
+  const { fetchUsage } = require('../lib/turn-usage');
+  const now = Date.parse('2026-11-03T15:02:00Z'); // começo do mês: a semana pega 4 dias de outubro
+  const queries = [];
+  const fake = http.createServer((req, res) => {
+    let body = ''; req.on('data', (c) => (body += c)); req.on('end', () => {
+      const { variables } = JSON.parse(body); queries.push(variables);
+      assert.equal(req.headers.authorization, 'Bearer tok');
+      const rows = variables.from === '2026-11-01'
+        ? [{ t: '2026-11-01T10:00:00Z', e: 2e9, i: 1e9, c: 2 }, { t: '2026-11-03T14:55:00Z', e: 5e8, i: 1e8, c: 3 }]
+        : [{ t: '2026-10-29T20:00:00Z', e: 7e9, i: 1e9, c: 1 }];
+      res.writeHead(200, { 'Content-Type': 'application/json' });
+      res.end(JSON.stringify({ data: { viewer: { accounts: [{ callsTurnUsageAdaptiveGroups: rows.map((r) => ({ dimensions: { datetimeFiveMinutes: r.t }, avg: { concurrentConnectionsFiveMinutes: r.c }, sum: { egressBytes: r.e, ingressBytes: r.i } })) }] } } }));
+    });
+  });
+  await new Promise((r) => fake.listen(0, r));
+  process.env.JUNTA_CF_GRAPHQL = `http://127.0.0.1:${fake.address().port}/graphql`;
+  try {
+    const u = await fetchUsage({ accountId: 'acc', token: 'tok' }, now);
+    assert.deepEqual(queries.map((q) => [q.from, q.to]), [['2026-11-01', '2026-11-03'], ['2026-10-28', '2026-10-31']]);
+    assert.equal(u.month.egress, 2.5e9, 'outubro não entra no mês');
+    assert.equal(u.month.ingress, 1.1e9);
+    assert.equal(u.days.length, 7);
+    assert.deepEqual(u.days.map((d) => d.egress), [0, 7e9, 0, 0, 2e9, 0, 5e8]);
+    assert.equal(u.current, 3, 'bloco dos últimos 15 minutos');
+    assert.equal((await fetchUsage({ accountId: 'acc', token: 'tok' }, now + 3600_000)).current, 0, 'nada recente: ninguém agora');
+  } finally { delete process.env.JUNTA_CF_GRAPHQL; fake.close(); }
+  // rota só para o dono
+  assert.equal((await bia.api('GET', '/api/admin/turn-usage')).status, 403);
+  const r = await andre.api('GET', '/api/admin/turn-usage');
+  assert.equal(r.data.usage.configured, false);
+});

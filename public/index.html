@@ -371,6 +371,7 @@
     <div class="auth-tabs" role="tablist">
       <button type="button" role="tab" data-admin-tab="users" aria-selected="true">Contas</button>
       <button type="button" role="tab" data-admin-tab="backups" aria-selected="false">Backups</button>
+      <button type="button" role="tab" data-admin-tab="turn" aria-selected="false">TURN</button>
     </div>
     <div id="adminUsers">
       <p class="help">Redefinir gera uma senha temporária para você passar à pessoa. Remover tira o acesso, mas mantém as mensagens; dá para restaurar.</p>
@@ -382,6 +383,11 @@
       <div class="admin-list" id="backupList"></div>
       <p class="help">Para restaurar: feche o Junta, copie o arquivo escolhido para <code>dados/junta.db</code> (substituindo) e copie o conteúdo de <code>arquivos</code> para <code>dados</code>.</p>
       <button type="button" class="ghost-btn" id="backupNow">Fazer backup agora</button>
+    </div>
+    <div id="adminTurn" hidden>
+      <p class="help">Quanto o TURN da Cloudflare repassou para quem não conseguiu conexão direta. Só o que sai da Cloudflare conta para os 1.000 GB grátis do mês.</p>
+      <div id="turnUsage"></div>
+      <button type="button" class="ghost-btn" id="turnRefresh">Atualizar</button>
     </div>
     <div class="modal-actions"><button type="button" class="primary" id="adminClose">Fechar</button></div>
   </div>

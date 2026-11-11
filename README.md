@@ -50,7 +50,8 @@ Algumas redes (4G de certas operadoras, redes de empresa) não deixam a conexão
 - Em **Voz e áudio** (engrenagem da sala), a seção **Conexão** mostra se o TURN está ativo e, para cada pessoa, se a conexão está **direta** ou **via TURN**.
 - A chave fica só no servidor; o navegador recebe credenciais que valem 24 h e são renovadas sozinhas.
 - Custo na Cloudflare: os primeiros 1.000 GB por mês são grátis.
-- Para desligar: `node scripts/configurar-turn.js --remover`. Para usar um TURN próprio (ex.: coturn numa VPS), escreva em `dados/turn.json`: `{ "iceServers": [{ "urls": ["turn:seu.servidor:3478"], "username": "...", "credential": "..." }] }`.
+- **Acompanhar o consumo:** o `configurar-turn` pergunta se você quer ver o consumo no Junta. Ele pede o **Account ID** da Cloudflare e um token com a permissão **Account Analytics: Read** (My Profile → API Tokens → Create Custom Token), testa e salva em `dados/cloudflare.json`. O consumo aparece em **Administração → TURN**: total do mês contra os 1.000 GB grátis, os últimos 7 dias e quantas conexões passam pelo TURN agora. Para trocar só esse token, rode o `configurar-turn` de novo e responda "n" sobre a chave do TURN.
+- Para desligar (TURN e acompanhamento): `node scripts/configurar-turn.js --remover`. Para usar um TURN próprio (ex.: coturn numa VPS), escreva em `dados/turn.json`: `{ "iceServers": [{ "urls": ["turn:seu.servidor:3478"], "username": "...", "credential": "..." }] }`.
 
 3. **Deploy** em Render, Railway ou Fly.io: é um app Node comum, comando de start `npm start`, porta lida de `PORT`. Veja os limites no fim.
 
