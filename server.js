@@ -11,7 +11,8 @@ const crypto = require('crypto');
 const { promisify } = require('util');
 const multer = require('multer');
 const { Server } = require('socket.io');
-const { db, FILES_DIR, inviteCode, newInviteCode, removeFiles } = require('./db');
+const fs = require('fs');
+const { db, FILES_DIR, AVATAR_DIR, inviteCode, newInviteCode, removeFiles } = require('./db');
 
 const PORT = process.env.PORT || 3000;
 const PAGE = 50;                       // mensagens por carregamento
@@ -81,7 +82,12 @@ function auth(req, res, next) {
   if (!u) return res.status(401).json({ error: 'Faça login para continuar.' });
   req.user = u; next();
 }
-const publicUser = (u) => ({ id: u.id, username: u.username, name: u.display, role: u.role });
+const publicUser = (u) => ({
+  id: u.id, username: u.username, name: u.display, role: u.role,
+  avatar: u.avatar || null, bio: u.bio || '', color: u.color || null, pronouns: u.pronouns || '',
+  statusText: u.status_text || '', created: u.created,
+});
+const fullUser = (id) => db.prepare('SELECT id, username, display, role, avatar, bio, color, pronouns, status_text, created FROM users WHERE id = ?').get(id);
 
 // limite simples de tentativas por IP (login e cadastro)
 const attempts = new Map();
@@ -96,7 +102,7 @@ function failed(ip) {
 }
 
 // ---------- rotas de conta ----------
-app.get('/api/me', auth, (req, res) => res.json({ user: publicUser(req.user), maxFileMb: MAX_FILE_MB, maxFiles: MAX_FILES }));
+app.get('/api/me', auth, (req, res) => res.json({ user: publicUser(fullUser(req.user.id)), maxFileMb: MAX_FILE_MB, maxFiles: MAX_FILES }));
 
 app.post('/api/register', async (req, res) => {
   if (tooMany(req.ip)) return res.status(429).json({ error: 'Muitas tentativas. Espere 15 minutos e tente de novo.' });
@@ -146,6 +152,48 @@ app.get('/api/invite', auth, (req, res) => {
 app.post('/api/invite/new', auth, (req, res) => {
   if (req.user.role !== 'owner') return res.status(403).json({ error: 'Só o dono pode gerar um novo código.' });
   res.json({ code: newInviteCode() });
+});
+
+// ---------- foto de perfil ----------
+// O navegador já recorta e reduz a foto para 256×256; aqui só conferimos que é mesmo uma imagem.
+const avatarUpload = multer({ storage: multer.memoryStorage(), limits: { fileSize: 2 * 1024 * 1024, files: 1 } });
+function imageKind(buf) {
+  if (buf.length > 8 && buf[0] === 0x89 && buf.toString('latin1', 1, 4) === 'PNG') return 'png';
+  if (buf.length > 3 && buf[0] === 0xff && buf[1] === 0xd8 && buf[2] === 0xff) return 'jpg';
+  if (buf.length > 12 && buf.toString('latin1', 0, 4) === 'RIFF' && buf.toString('latin1', 8, 12) === 'WEBP') return 'webp';
+  if (buf.length > 6 && buf.toString('latin1', 0, 4) === 'GIF8') return 'gif';
+  return null;
+}
+const AVATAR_TYPES = { png: 'image/png', jpg: 'image/jpeg', webp: 'image/webp', gif: 'image/gif' };
+function setAvatar(userId, file) {
+  const old = db.prepare('SELECT avatar FROM users WHERE id = ?').get(userId)?.avatar;
+  db.prepare('UPDATE users SET avatar = ? WHERE id = ?').run(file, userId);
+  if (old) fs.rm(path.join(AVATAR_DIR, path.basename(old)), { force: true }, () => {});
+  broadcastPresence();
+}
+app.post('/api/avatar', auth, (req, res) => {
+  avatarUpload.single('avatar')(req, res, (err) => {
+    if (err) return res.status(400).json({ error: err.code === 'LIMIT_FILE_SIZE' ? 'A foto pode ter no máximo 2 MB.' : 'Não foi possível enviar a foto.' });
+    const kind = req.file && imageKind(req.file.buffer);
+    if (!kind) return res.status(400).json({ error: 'Envie uma imagem PNG, JPG, WEBP ou GIF.' });
+    const file = `${req.user.id}-${crypto.randomBytes(6).toString('hex')}.${kind}`; // nome novo a cada troca: o cache não mostra a foto antiga
+    fs.writeFile(path.join(AVATAR_DIR, file), req.file.buffer, (e) => {
+      if (e) return res.status(500).json({ error: 'Não foi possível salvar a foto.' });
+      setAvatar(req.user.id, file);
+      res.json({ avatar: file });
+    });
+  });
+});
+app.delete('/api/avatar', auth, (req, res) => { setAvatar(req.user.id, null); res.json({ ok: true }); });
+app.get('/avatares/:file', auth, (req, res) => {
+  const file = path.basename(req.params.file);
+  const kind = file.split('.').pop();
+  if (!AVATAR_TYPES[kind]) return res.status(404).end();
+  res.setHeader('Content-Type', AVATAR_TYPES[kind]);
+  res.setHeader('X-Content-Type-Options', 'nosniff');
+  res.setHeader('Content-Security-Policy', "default-src 'none'; sandbox");
+  res.setHeader('Cache-Control', 'private, max-age=31536000, immutable');
+  res.sendFile(file, { root: AVATAR_DIR }, (err) => { if (err && !res.headersSent) res.status(404).end(); });
 });
 
 // ---------- anexos ----------
@@ -235,8 +283,27 @@ function loadPage(key, before) {
 const online = {}; // socketId -> { uid, status }
 const voice = {};  // "serverId/channelId" -> { socketId: { uid, name, muted, sharing } }
 const STATUSES = ['online', 'idle', 'dnd'];
-const allUsers = () => db.prepare('SELECT id, username, display, role FROM users ORDER BY display COLLATE NOCASE').all().map(publicUser);
-const presencePayload = () => ({ users: allUsers(), online: Object.entries(online).map(([sid, o]) => ({ sid, ...o })) });
+const allUsers = () => db.prepare('SELECT id, username, display, role, avatar, bio, color, pronouns, status_text, created FROM users ORDER BY display COLLATE NOCASE').all().map(publicUser);
+// apelidos por servidor: { userId: { serverId: apelido } }
+function allNicks() {
+  const out = {};
+  for (const r of db.prepare('SELECT server_id, user_id, nick FROM nicknames').all()) (out[r.user_id] ||= {})[r.server_id] = r.nick;
+  return out;
+}
+// nome que aparece num servidor: apelido de lá, ou o nome de exibição
+function nameIn(userId, serverId) {
+  return db.prepare('SELECT nick FROM nicknames WHERE server_id = ? AND user_id = ?').get(serverId, userId)?.nick
+    || db.prepare('SELECT display FROM users WHERE id = ?').get(userId)?.display || 'Alguém';
+}
+// atualiza o nome mostrado nas salas de voz depois de trocar nome ou apelido
+function refreshVoiceNames(userId) {
+  let changed = false;
+  for (const [key, room] of Object.entries(voice)) for (const m of Object.values(room)) {
+    if (m.uid === userId) { m.name = nameIn(userId, key.split('/')[0]); changed = true; }
+  }
+  if (changed) io.emit('voice-state', voiceSnapshot());
+}
+const presencePayload = () => ({ users: allUsers(), nicks: allNicks(), online: Object.entries(online).map(([sid, o]) => ({ sid, ...o })) });
 let presenceTimer = null;
 function broadcastPresence() { // agrupa rajadas de mudanças num só envio
   clearTimeout(presenceTimer);
@@ -277,7 +344,7 @@ io.on('connection', (socket) => {
     const status = STATUSES.includes(payload?.status) ? payload.status : 'online';
     online[socket.id] = { uid: me().id, status };
     broadcastPresence();
-    reply(cb, { sid: socket.id, user: publicUser(me()), servers: serverList(), voice: voiceSnapshot(), ...presencePayload() });
+    reply(cb, { sid: socket.id, user: publicUser(fullUser(me().id)), servers: serverList(), voice: voiceSnapshot(), ...presencePayload() });
   });
 
   socket.on('set-status', (status) => {
@@ -286,13 +353,24 @@ io.on('connection', (socket) => {
     broadcastPresence();
   });
 
-  socket.on('set-display', (name, cb) => {
-    const n = clean(name, 32);
-    if (!n) return reply(cb, { error: 'Escolha um nome.' });
-    db.prepare('UPDATE users SET display = ? WHERE id = ?').run(n, me().id);
-    for (const s of io.sockets.sockets.values()) if (s.data.user?.id === me().id) s.data.user.display = n;
-    for (const room of Object.values(voice)) for (const m of Object.values(room)) if (m.uid === me().id) m.name = n;
-    io.emit('voice-state', voiceSnapshot());
+  socket.on('profile-update', (p = {}, cb) => {
+    const display = clean(p.display, 32);
+    if (!display) return reply(cb, { error: 'O nome de exibição não pode ficar vazio.' });
+    const color = /^#[0-9a-f]{6}$/i.test(p.color || '') ? p.color.toLowerCase() : null;
+    db.prepare('UPDATE users SET display = ?, pronouns = ?, status_text = ?, bio = ?, color = ? WHERE id = ?')
+      .run(display, clean(p.pronouns, 40), clean(p.statusText, 60), clean(p.bio, 190), color, me().id);
+    for (const s of io.sockets.sockets.values()) if (s.data.user?.id === me().id) s.data.user.display = display;
+    refreshVoiceNames(me().id);
+    broadcastPresence();
+    reply(cb, { ok: true });
+  });
+
+  socket.on('set-nick', ({ serverId, nick } = {}, cb) => {
+    if (!db.prepare('SELECT 1 FROM servers WHERE id = ?').get(String(serverId))) return reply(cb, { error: 'Servidor não encontrado.' });
+    const n = clean(nick, 32);
+    if (n) db.prepare('INSERT INTO nicknames (server_id, user_id, nick) VALUES (?, ?, ?) ON CONFLICT(server_id, user_id) DO UPDATE SET nick = excluded.nick').run(serverId, me().id, n);
+    else db.prepare('DELETE FROM nicknames WHERE server_id = ? AND user_id = ?').run(serverId, me().id);
+    refreshVoiceNames(me().id);
     broadcastPresence();
     reply(cb, { ok: true });
   });
@@ -351,7 +429,7 @@ io.on('connection', (socket) => {
   });
 
   socket.on('typing', (key) => {
-    if (socket.data.text === key) socket.to('t:' + key).emit('typing', { key, name: me().display });
+    if (socket.data.text === key) socket.to('t:' + key).emit('typing', { key, uid: me().id });
   });
 
   // --- servidores e canais (só o dono) ---
@@ -406,7 +484,7 @@ io.on('connection', (socket) => {
     leaveVoice(socket);
     voice[key] ||= {};
     const peers = Object.keys(voice[key]);
-    voice[key][socket.id] = { uid: me().id, name: me().display, muted: false, sharing: false };
+    voice[key][socket.id] = { uid: me().id, name: nameIn(me().id, ch.server_id), muted: false, sharing: false };
     socket.data.voice = key;
     socket.join('v:' + key);
     reply(cb, peers);

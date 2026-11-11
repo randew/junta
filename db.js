@@ -6,7 +6,9 @@ const crypto = require('crypto');
 
 const DATA_DIR = process.env.JUNTA_DATA || path.join(__dirname, 'dados');
 const FILES_DIR = path.join(DATA_DIR, 'anexos');
+const AVATAR_DIR = path.join(DATA_DIR, 'avatares');
 fs.mkdirSync(FILES_DIR, { recursive: true });
+fs.mkdirSync(AVATAR_DIR, { recursive: true });
 
 const db = new DatabaseSync(path.join(DATA_DIR, 'junta.db'));
 db.exec(`
@@ -68,6 +70,20 @@ db.exec(`
   );
 `);
 
+// Perfil: colunas adicionadas depois da primeira versão (o banco existente é atualizado sem perder nada)
+const userCols = new Set(db.prepare('PRAGMA table_info(users)').all().map((c) => c.name));
+for (const [col, def] of [['avatar', 'TEXT'], ['bio', "TEXT NOT NULL DEFAULT ''"], ['color', 'TEXT'], ['pronouns', "TEXT NOT NULL DEFAULT ''"], ['status_text', "TEXT NOT NULL DEFAULT ''"]]) {
+  if (!userCols.has(col)) db.exec(`ALTER TABLE users ADD COLUMN ${col} ${def}`);
+}
+db.exec(`
+  CREATE TABLE IF NOT EXISTS nicknames (
+    server_id TEXT NOT NULL REFERENCES servers(id) ON DELETE CASCADE,
+    user_id   INTEGER NOT NULL REFERENCES users(id) ON DELETE CASCADE,
+    nick      TEXT NOT NULL,
+    PRIMARY KEY (server_id, user_id)
+  );
+`);
+
 // Servidores e canais iniciais (só na primeira execução)
 if (!db.prepare('SELECT 1 FROM servers LIMIT 1').get()) {
   const seed = [
@@ -99,4 +115,4 @@ function removeFiles(rows) {
   for (const r of rows) fs.rm(path.join(FILES_DIR, r.file), { force: true }, () => {});
 }
 
-module.exports = { db, DATA_DIR, FILES_DIR, getSetting, setSetting, inviteCode, newInviteCode, removeFiles };
+module.exports = { db, DATA_DIR, FILES_DIR, AVATAR_DIR, getSetting, setSetting, inviteCode, newInviteCode, removeFiles };

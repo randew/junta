@@ -173,6 +173,50 @@
   </div>
 </div>
 
+<!-- Cartão de perfil (ao clicar em alguém) -->
+<div class="pcard" id="pcard" role="dialog" aria-label="Perfil" hidden></div>
+
+<!-- Editor de perfil -->
+<div class="modal-back" id="profileModal" hidden>
+  <form class="modal profile-modal" id="profileForm" novalidate>
+    <h3>Seu perfil</h3>
+    <div class="prof-grid">
+      <div class="prof-fields">
+        <div class="field">
+          <span class="lbl">Foto de perfil</span>
+          <div class="avatar-row">
+            <button type="button" class="ghost-btn" id="avatarPick">Escolher foto</button>
+            <button type="button" class="ghost" id="avatarRemove">Remover foto</button>
+            <input type="file" id="avatarFile" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+          </div>
+          <div class="cropper" id="cropper" hidden>
+            <div class="crop-view" id="cropView" tabindex="0" aria-label="Enquadramento da foto: arraste ou use as setas"><img id="cropImg" alt="" draggable="false"></div>
+            <label class="crop-zoom" for="cropZoom"><span>Zoom</span><input type="range" id="cropZoom" min="1" max="4" step="0.01" value="1"></label>
+            <small class="help">Arraste para enquadrar. A roda do mouse também dá zoom.</small>
+          </div>
+        </div>
+        <label class="field" for="pfDisplay"><span class="lbl">Nome de exibição</span>
+          <input id="pfDisplay" maxlength="32" required></label>
+        <label class="field" for="pfNick"><span class="lbl" id="pfNickLbl">Apelido neste servidor</span>
+          <input id="pfNick" maxlength="32" placeholder="Vazio: usa o nome de exibição"></label>
+        <label class="field" for="pfPronouns"><span class="lbl">Pronomes</span>
+          <input id="pfPronouns" maxlength="40" placeholder="ex.: ele/dele"></label>
+        <label class="field" for="pfStatus"><span class="lbl">Status personalizado</span>
+          <input id="pfStatus" maxlength="60" placeholder="ex.: Jogando Valorant"></label>
+        <label class="field" for="pfBio"><span class="lbl">Sobre mim <span class="count" id="pfBioCount">0/190</span></span>
+          <textarea id="pfBio" maxlength="190" rows="3" placeholder="Conte um pouco sobre você"></textarea></label>
+        <div class="field"><span class="lbl">Cor do perfil</span><div class="swatches" id="pfSwatches"></div></div>
+      </div>
+      <div class="prof-preview"><span class="lbl">Prévia</span><div class="pcard static" id="pfPreview"></div></div>
+    </div>
+    <p class="auth-error" id="pfError" role="alert" hidden></p>
+    <div class="modal-actions">
+      <button type="button" class="ghost" id="pfCancel">Cancelar</button>
+      <button type="submit" class="primary" id="pfSave">Salvar perfil</button>
+    </div>
+  </form>
+</div>
+
 <!-- Convite (dono) -->
 <div class="modal-back" id="inviteModal" hidden>
   <div class="modal" role="dialog" aria-modal="true" aria-labelledby="inviteTitle">

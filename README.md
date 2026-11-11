@@ -29,6 +29,16 @@ Se a pasta tiver sido baixada com `git clone`, os atalhos baixam a versão mais 
 - O login fica salvo por 60 dias. **Sair da conta** fica no mesmo menu do seu nome.
 - O lápis ao lado do seu nome troca o **nome de exibição**; o usuário de login não muda.
 
+## Perfil
+
+O lápis ao lado do seu nome (canto inferior esquerdo) abre o editor de perfil, com prévia ao vivo:
+
+- **Foto de perfil:** escolha uma imagem, arraste e dê zoom para enquadrar. Ela é recortada em 256×256 no próprio navegador antes de ser enviada. GIFs ficam parados.
+- **Nome de exibição** e **apelido** por servidor: o apelido vale só no servidor em que você está; sem apelido, aparece o nome de exibição.
+- **Pronomes**, **status personalizado** (aparece embaixo do seu nome na lista de membros), **sobre mim** (até 190 caracteres) e **cor do perfil**.
+
+Clique na foto ou no nome de alguém, nas mensagens ou na lista de membros, para ver o cartão de perfil da pessoa. As fotos ficam em `dados/avatares/` e só abrem para quem está logado.
+
 ## Mensagens e anexos
 
 - Tudo fica salvo na pasta **`dados/`** (banco `junta.db` e arquivos em `anexos/`). Reiniciar o servidor ou atualizar o código não apaga nada.
