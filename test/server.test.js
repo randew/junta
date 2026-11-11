@@ -165,3 +165,42 @@ test('prévia de links: bloqueia a rede interna e lê páginas públicas', async
     assert.equal(upd.msg.embeds[0].image, `http://127.0.0.1:${page.address().port}/img.png`);
   } finally { previews.setAllowPrivate(false); page.close(); }
 });
+
+test('gerenciar servidores e canais (só o dono)', async () => {
+  // criar
+  const made = await andre.emit('create-server', 'Jogos');
+  assert.equal(made.ok, true);
+  assert.match((await bia.emit('server-update', { id: made.id, name: 'x' })).error, /dono/);
+  // renomear
+  assert.equal((await andre.emit('server-update', { id: made.id, name: 'Jogatina' })).ok, true);
+  let list = (await bia.emit('hello', {})).servers;
+  assert.equal(list.find((s) => s.id === made.id).name, 'Jogatina');
+  // reordenar: o novo sobe uma posição
+  const before = list.map((s) => s.id);
+  await andre.emit('server-move', { id: made.id, dir: -1 });
+  list = (await bia.emit('hello', {})).servers.map((s) => s.id);
+  assert.equal(list.indexOf(made.id), before.indexOf(made.id) - 1);
+  // canais: renomear e reordenar
+  const key = `${made.id}/geral`;
+  assert.equal((await andre.emit('channel-update', { key, name: 'Papo Geral' })).ok, true);
+  await andre.emit('create-channel', { serverId: made.id, name: 'Clips', type: 'text' });
+  await andre.emit('channel-move', { key: `${made.id}/clips`, dir: -1 });
+  const chans = (await bia.emit('hello', {})).servers.find((s) => s.id === made.id).channels;
+  assert.deepEqual(chans.filter((c) => c.type === 'text').map((c) => c.name), ['clips', 'papo-geral']);
+  // ícone: só imagem de verdade, só o dono
+  const png = Buffer.from('89504e470d0a1a0a0000000d4948445200000001000000010806000000', 'hex');
+  const fd = () => { const f = new FormData(); f.append('icon', new Blob([png]), 'i.png'); return f; };
+  assert.equal((await bia.api('POST', `/api/servers/${made.id}/icon`, fd())).status, 403);
+  const fake = new FormData(); fake.append('icon', new Blob(['<svg/>']), 'i.png');
+  assert.equal((await andre.api('POST', `/api/servers/${made.id}/icon`, fake)).status, 400);
+  const up = await andre.api('POST', `/api/servers/${made.id}/icon`, fd());
+  assert.equal(up.status, 200);
+  assert.equal((await bia.emit('hello', {})).servers.find((s) => s.id === made.id).icon, up.data.icon);
+  // excluir: confirmação errada, depois certa; mensagens somem
+  await bia.emit('message', { key, text: 'vai sumir' });
+  assert.match((await andre.emit('server-delete', { id: made.id, confirm: 'Jogos' })).error, /Digite o nome/);
+  assert.equal((await andre.emit('server-delete', { id: made.id, confirm: 'jogatina' })).ok, true);
+  assert.ok(!(await bia.emit('hello', {})).servers.some((s) => s.id === made.id));
+  assert.equal((await bia.emit('search', { q: 'sumir', scope: made.id })).results.length, 0);
+  assert.match((await bia.emit('join-text', key)).error, /acesso/);
+});

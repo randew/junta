@@ -10,7 +10,8 @@ function renderRail() {
   const list = $('serverList'); list.replaceChildren();
   for (const s of S.servers) {
     const u = unreadIn(s.id);
-    const b = el('button', 'rail-btn' + (!S.home && s.id === S.serverId ? ' active' : '') + (u.n ? ' unread' : ''), initials(s.name));
+    const b = el('button', 'rail-btn' + (!S.home && s.id === S.serverId ? ' active' : '') + (u.n ? ' unread' : '') + (s.icon ? ' has-ico' : ''));
+    b.append(serverIcon(s));
     b.title = s.name; b.setAttribute('aria-label', s.name + (u.m ? `, ${u.m} menções` : u.n ? ', mensagens novas' : ''));
     const hasVoice = s.channels.some((c) => S.voice[keyOf(s.id, c.id)]?.length);
     if (hasVoice) b.append(el('span', 'vbadge'));
@@ -23,9 +24,10 @@ function renderRail() {
 function renderChannels() {
   const box = $('channelList'); box.replaceChildren();
   renderVoiceBar();
-  if (S.home) { renderDmList(box); return; }
+  if (S.home) { $('serverMenuBtn').hidden = true; renderDmList(box); return; }
   const s = currentServer(); if (!s) return;
   $('serverName').textContent = s.name;
+  $('serverMenuBtn').hidden = !isOwner();
   for (const [type, label] of [['text', 'Canais de texto'], ['voice', 'Voz e tela']]) {
     const cat = el('div', 'cat'); cat.append(el('span', null, label));
     if (isOwner()) {
@@ -227,10 +229,10 @@ async function createChannel(type) {
     if (res?.error) toast(res.error); else if (res?.id) selectChannel(res.id);
   });
 }
-async function deleteChannel(c) {
+async function deleteChannel(c, serverId = S.serverId) {
   const r = await ask({ title: `Apagar ${c.type === 'text' ? '#' : ''}${c.name}?`, text: c.type === 'text' ? 'Todas as mensagens e anexos deste canal serão apagados para sempre.' : 'Quem estiver na sala será desconectado.', ok: 'Apagar canal', noInput: true, danger: true });
   if (!r) return;
-  socket.emit('delete-channel', keyOf(S.serverId, c.id), (res) => { if (res?.error) toast(res.error); else toast('Canal apagado.'); });
+  socket.emit('delete-channel', keyOf(serverId, c.id), (res) => { if (res?.error) toast(res.error); else toast('Canal apagado.'); });
 }
 $('addServerBtn').onclick = async () => {
   const r = await ask({ title: 'Criar servidor', text: 'Ele já vem com um canal de texto e uma sala de voz.', placeholder: 'Nome do servidor', ok: 'Criar' });

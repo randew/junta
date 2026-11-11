@@ -21,7 +21,12 @@
 
   <!-- Canais -->
   <aside class="sidebar" id="sidebar">
-    <header class="sidebar-head"><h1 id="serverName">—</h1></header>
+    <header class="sidebar-head">
+      <h1 id="serverName">—</h1>
+      <button type="button" class="icon-btn" id="serverMenuBtn" title="Configurações do servidor" aria-label="Configurações do servidor" hidden>
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M19.14 12.94a7.07 7.07 0 0 0 0-1.88l2.03-1.58a.5.5 0 0 0 .12-.63l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7 7 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.49.42l-.36 2.54a7.3 7.3 0 0 0-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.66 8.85a.5.5 0 0 0 .12.63l2.03 1.58a7.07 7.07 0 0 0 0 1.88l-2.03 1.58a.5.5 0 0 0-.12.63l1.92 3.32c.12.22.39.3.6.22l2.39-.96c.5.38 1.05.7 1.63.94l.36 2.54c.05.24.25.42.49.42h3.84c.25 0 .45-.18.5-.42l.36-2.54a7 7 0 0 0 1.63-.94l2.39.96c.22.08.48 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.63l-2.03-1.58zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z"/></svg>
+      </button>
+    </header>
     <div class="channels" id="channelList"></div>
 
     <div class="voice-bar" id="voiceBar" hidden>
@@ -254,6 +259,48 @@
   </form>
 </div>
 
+<!-- Configurações do servidor (dono) -->
+<div class="modal-back" id="serverModal" hidden>
+  <div class="modal admin-modal" role="dialog" aria-modal="true" aria-labelledby="ssTitle">
+    <h3 id="ssTitle">Configurações do servidor</h3>
+    <div class="auth-tabs" role="tablist">
+      <button type="button" role="tab" data-ss-tab="general" aria-selected="true">Geral</button>
+      <button type="button" role="tab" data-ss-tab="channels" aria-selected="false">Canais</button>
+    </div>
+    <div id="ssGeneral" class="ss-section">
+      <div class="ss-icon-row">
+        <div class="ss-ico" id="ssIcon"></div>
+        <div class="ss-icon-acts">
+          <span class="lbl">Ícone</span>
+          <div class="avatar-row">
+            <button type="button" class="ghost-btn" id="ssIconPick">Escolher imagem</button>
+            <button type="button" class="ghost" id="ssIconRemove">Remover</button>
+            <input type="file" id="ssIconFile" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+          </div>
+          <small class="help">O centro da imagem é recortado em quadrado.</small>
+        </div>
+      </div>
+      <form class="field" id="ssNameForm">
+        <label class="lbl" for="ssName">Nome do servidor</label>
+        <div class="ss-inline"><input id="ssName" class="text-in" maxlength="40" required><button type="submit" class="primary">Salvar</button></div>
+      </form>
+      <div class="field">
+        <span class="lbl">Posição na barra</span>
+        <div class="ss-inline"><button type="button" class="ghost-btn" id="ssUp">↑ Subir</button><button type="button" class="ghost-btn" id="ssDown">↓ Descer</button><small class="help" id="ssPos"></small></div>
+      </div>
+      <div class="danger-zone">
+        <div><strong>Excluir servidor</strong><small class="help" id="ssDeleteHint"></small></div>
+        <button type="button" class="danger-btn" id="ssDelete">Excluir servidor</button>
+      </div>
+    </div>
+    <div id="ssChannels" class="ss-section" hidden>
+      <p class="help">Renomeie direto no campo (Enter salva). As mensagens continuam no canal mesmo com outro nome.</p>
+      <div id="ssChannelList"></div>
+    </div>
+    <div class="modal-actions"><button type="button" class="primary" id="ssClose">Fechar</button></div>
+  </div>
+</div>
+
 <!-- Seletor de emojis -->
 <div class="emoji-picker" id="emojiPicker" role="dialog" aria-label="Emojis" hidden></div>
 
@@ -410,6 +457,7 @@
 <script src="js/core.js"></script>
 <script src="js/format.js"></script>
 <script src="js/layout.js"></script>
+<script src="js/servers.js"></script>
 <script src="js/chat.js"></script>
 <script src="js/unread.js"></script>
 <script src="js/dm.js"></script>

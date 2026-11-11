@@ -565,3 +565,27 @@ mark { background: color-mix(in srgb, var(--amber) 45%, transparent); color: var
 /* janelas de confirmação e a senha temporária ficam acima dos painéis que as abrem */
 #modal, #tempModal { z-index: 65; }
 .toast { z-index: 90; }
+
+/* ---------- configurações do servidor ---------- */
+.sidebar-head { justify-content: space-between; gap: 8px; }
+.rail-btn.has-ico { background: none; overflow: hidden; padding: 0; }
+.rail-btn .rail-ico { width: 100%; height: 100%; object-fit: cover; border-radius: inherit; display: block; }
+.rail-btn.has-ico.active { outline: 2px solid var(--amber); outline-offset: 2px; }
+.ss-section { display: flex; flex-direction: column; gap: 16px; }
+.ss-icon-row { display: flex; gap: 16px; align-items: center; flex-wrap: wrap; }
+.ss-ico { width: 80px; height: 80px; border-radius: 22px; background: var(--ink-3); display: grid; place-items: center; font: 700 26px/1 var(--display); overflow: hidden; flex: none; }
+.ss-ico .ss-ico-img { width: 100%; height: 100%; object-fit: cover; }
+.ss-icon-acts { display: flex; flex-direction: column; gap: 6px; min-width: 0; }
+.ss-inline { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.ss-inline .text-in { flex: 1; min-width: 160px; }
+.ghost-btn:disabled { opacity: .4; cursor: default; }
+.danger-zone { display: flex; justify-content: space-between; align-items: center; gap: 12px; flex-wrap: wrap; padding: 12px; border: 1px solid color-mix(in srgb, var(--danger) 60%, transparent); border-radius: 10px; }
+.danger-zone small { display: block; margin-top: 2px; }
+.danger-btn:disabled { opacity: .45; cursor: default; }
+.ss-group { margin-top: 10px; }
+.ss-chan { display: flex; align-items: center; gap: 6px; margin-top: 6px; }
+.ss-chan .glyph { width: 18px; text-align: center; font-family: var(--mono); color: var(--fg-dim); flex: none; }
+.ss-chan .text-in { flex: 1; min-width: 0; padding: 7px 10px; }
+.ss-chan .icon-btn:disabled { opacity: .3; cursor: default; }
+.ss-add { align-self: flex-start; margin-top: 8px; padding: 6px 10px; font-size: 13px; }
+#ssChannelList { display: flex; flex-direction: column; }

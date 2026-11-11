@@ -4,10 +4,16 @@
 // ---------- eventos do servidor ----------
 socket.on('servers', (servers) => {
   S.servers = servers; renderRail();
+  if (!$('serverModal').hidden) renderServerSettings();
   if (S.home) return;
   if (!currentServer()) { selectServer(S.servers[0].id); return; }
   if (!currentChannel()) { toast('O canal que você estava foi apagado.'); selectServer(S.serverId); return; }
   renderChannels();
+  // nome do servidor ou do canal pode ter mudado: atualiza o topo
+  const c = currentChannel();
+  $('channelTitle').textContent = c.name;
+  $('channelSub').textContent = c.type === 'text' ? `Conversa em ${currentServer().name}` : 'Voz e compartilhamento de tela';
+  if (c.type === 'text') $('msgInput').placeholder = `Mensagem em #${c.name}`;
 });
 socket.on('voice-kicked', () => { if (S.voiceKey) leaveVoice(); });
 
