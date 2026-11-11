@@ -132,7 +132,7 @@ Cada servidor tem os próprios cargos. Abra a engrenagem ao lado do nome do serv
 
 ## Voz, tela e câmera
 
-- **Soundboard:** na sala, o botão **Sons** toca um som curto para todo mundo da sala (até 6 segundos). Os sons são enviados em Configurações do servidor → **Emojis e sons** por quem tem **Gerenciar emojis e sons**; tocar pede **Usar o soundboard** (vem ligado para todos). Cada pessoa ajusta o volume ou desliga o som do soundboard em **Áudio**.
+- **Soundboard:** na sala, o botão **Sons** toca um som curto para todo mundo da sala (até 6 segundos). Os sons são enviados em Configurações do servidor → **Emojis e sons** por quem tem **Gerenciar emojis e sons**. Qualquer áudio ou vídeo serve: abre um **editor** que já sugere o trecho mais alto, deixa arrastar as alças para escolher até 6 segundos, ouvir, pular o silêncio do começo, ajustar volume, normalizar e suavizar começo e fim, e gera um WAV mono pequeno (tudo no navegador). O ✂ ao lado de um som reabre o editor para mudar o corte ou o nome; tocar pede **Usar o soundboard** (vem ligado para todos). Cada pessoa ajusta o volume ou desliga o som do soundboard em **Áudio**.
 
 - **Câmera:** botão **Câmera** dentro da sala (720p a 30 fps). A sua imagem aparece espelhada só para você. Escolha a câmera em **Áudio**.
 - **Compartilhar tela** com três predefinições:

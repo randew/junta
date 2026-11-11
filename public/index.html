@@ -362,9 +362,9 @@
       <div class="expr-head">
         <div><strong>Soundboard</strong> <small class="help" id="soundCount"></small></div>
         <button type="button" class="ghost-btn" id="soundAdd">+ Enviar som</button>
-        <input type="file" id="soundFile" accept="audio/*,.mp3,.ogg,.wav,.webm,.m4a" hidden>
+        <input type="file" id="soundFile" accept="audio/*,video/*,.mp3,.ogg,.wav,.webm,.m4a,.mp4,.mov" hidden>
       </div>
-      <p class="help">Sons curtos (até 6 segundos e 1 MB) que quem está na sala de voz toca pelo botão <strong>Sons</strong>.</p>
+      <p class="help">Sons curtos que quem está na sala de voz toca pelo botão <strong>Sons</strong>. Pode escolher qualquer áudio ou vídeo: o editor abre para você cortar o trecho (até 6 segundos) e ajustar o volume.</p>
       <div class="sound-list" id="soundList"></div>
     </div>
     <div id="ssRoles" class="ss-section" hidden>
@@ -393,6 +393,45 @@
   <div class="gif-foot" id="gifFoot"></div>
 </div>
 <div class="sound-pop" id="soundPop" role="dialog" aria-label="Soundboard" hidden></div>
+<!-- Editor de sons do soundboard: corta até 6 s, ajusta volume e fades, e gera um WAV pequeno -->
+<div class="modal-back" id="soundEditor" hidden>
+  <div class="modal se-modal" role="dialog" aria-modal="true" aria-labelledby="seTitle">
+    <h3 id="seTitle">Editar som</h3>
+    <p class="help" id="seInfo"></p>
+    <div class="se-overview-wrap">
+      <canvas class="se-overview" id="seOverview" aria-label="Arquivo inteiro: clique ou arraste para mover o trecho"></canvas>
+    </div>
+    <div class="se-wave-wrap" id="seWaveWrap">
+      <canvas class="se-wave" id="seWave"></canvas>
+      <div class="se-handle start" id="seStartH" role="slider" tabindex="0" aria-label="Início do trecho"></div>
+      <div class="se-handle end" id="seEndH" role="slider" tabindex="0" aria-label="Fim do trecho"></div>
+    </div>
+    <div class="se-times">
+      <span id="seRange"></span>
+      <span class="se-len" id="seLen"></span>
+    </div>
+    <div class="se-row">
+      <button type="button" class="ghost-btn" id="sePlay">▶ Ouvir trecho</button>
+      <button type="button" class="ghost-btn" id="seTrim" title="Começa o trecho onde o som de verdade começa">Pular silêncio do início</button>
+    </div>
+    <div class="se-grid">
+      <label class="field" for="seGain"><span class="vol-line"><span class="lbl">Volume</span><span id="seGainVal">0 dB</span></span>
+        <input type="range" id="seGain" min="-12" max="12" step="1" value="0"></label>
+      <div class="se-checks">
+        <label><input type="checkbox" id="seNorm" checked> Normalizar (volume parecido com os outros sons)</label>
+        <label><input type="checkbox" id="seFadeIn" checked> Suavizar o começo</label>
+        <label><input type="checkbox" id="seFadeOut" checked> Suavizar o fim</label>
+      </div>
+    </div>
+    <label class="field" for="seName"><span class="lbl">Nome do botão</span>
+      <input id="seName" class="text-in" maxlength="40" placeholder="🎉 Festa (um emoji no começo vira o ícone)"></label>
+    <p class="help" id="seSize"></p>
+    <div class="modal-actions">
+      <button type="button" class="ghost" id="seCancel">Cancelar</button>
+      <button type="button" class="primary" id="seSave">Enviar som</button>
+    </div>
+  </div>
+</div>
 
 <!-- Nova conversa direta -->
 <div class="modal-back" id="dmPick" hidden>
@@ -604,6 +643,7 @@
 <script src="js/panels.js"></script>
 <script src="js/thread.js"></script>
 <script src="js/expressions.js"></script>
+<script src="js/soundeditor.js"></script>
 <script src="js/gifs.js"></script>
 <script src="js/profile.js"></script>
 <script src="js/admin.js"></script>

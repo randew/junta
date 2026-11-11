@@ -25,7 +25,9 @@ function renderExprTab() {
     const row = el('div', 'sound-row');
     const play = el('button', 'icon-btn', '▶'); play.type = 'button'; play.title = 'Ouvir'; play.setAttribute('aria-label', `Ouvir ${so.name}`);
     play.onclick = () => playSoundFile(so.file, true);
-    row.append(play, el('span', 'sound-emo', so.emoji || '🔊'), el('span', 'expr-name', so.name));
+    const edit = el('button', 'icon-btn', '✂'); edit.type = 'button'; edit.title = 'Editar (cortar, volume, nome)'; edit.setAttribute('aria-label', `Editar ${so.name}`);
+    edit.onclick = () => editExistingSound(so);
+    row.append(play, el('span', 'sound-emo', so.emoji || '🔊'), el('span', 'expr-name', so.name), edit);
     const del = el('button', 'icon-btn danger', '×'); del.type = 'button'; del.title = `Apagar ${so.name}`; del.setAttribute('aria-label', del.title);
     del.onclick = async () => {
       const ok = await ask({ title: `Apagar o som "${so.name}"?`, noInput: true, ok: 'Apagar', danger: true });
@@ -79,24 +81,10 @@ function fitImage(file, max) {
 
 // som: confere a duração antes de enviar (até 6 segundos)
 $('soundAdd').onclick = () => $('soundFile').click();
-$('soundFile').onchange = async () => {
+// qualquer áudio ou vídeo abre no editor: lá se escolhe o trecho de até 6 s (veja soundeditor.js)
+$('soundFile').onchange = () => {
   const f = $('soundFile').files[0]; $('soundFile').value = '';
-  const s = ssServer(); if (!f || !s) return;
-  if (f.size > 1024 * 1024) return toast('O som pode ter no máximo 1 MB.');
-  let secs = 0;
-  try {
-    const ac = new (window.AudioContext || window.webkitAudioContext)();
-    secs = (await ac.decodeAudioData(await f.arrayBuffer())).duration; ac.close();
-  } catch { return toast('Não consegui ler esse áudio. Use MP3, OGG, WAV, WEBM ou M4A.'); }
-  if (secs > 6.2) return toast(`Esse som tem ${secs.toFixed(1)} s. O limite é 6 segundos: corte um trecho e tente de novo.`);
-  const base = f.name.replace(/\.[a-z0-9]+$/i, '').slice(0, 32);
-  const r = await ask({ title: 'Nome do som', text: 'Pode começar com um emoji, que aparece no botão (ex.: 🎉 Festa).', value: base, ok: 'Enviar' });
-  if (!r) return;
-  // um emoji no começo do nome vira o ícone do botão
-  const m = /^\s*(\p{Extended_Pictographic}(?:️|‍\p{Extended_Pictographic})*)\s*(.*)$/u.exec(r.value);
-  const emoji = m ? m[1] : '', name = (m ? m[2] : r.value).trim() || base;
-  try { await uploadTo(`/api/servers/${encodeURIComponent(s.id)}/sounds`, f, { name, emoji }); toast(`Som "${name}" adicionado.`); }
-  catch (x) { toast(x.message); }
+  if (f && ssServer()) openSoundEditor(f);
 };
 
 // ---------- tocar ----------
