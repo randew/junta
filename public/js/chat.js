@@ -63,9 +63,11 @@ function reactionsNode(m) {
     b.onclick = () => react(m.id, r.e);
     box.append(b);
   }
-  const add = el('button', 'react add'); add.type = 'button'; add.title = 'Adicionar reação'; add.setAttribute('aria-label', 'Adicionar reação');
-  add.innerHTML = ICON.react; add.onclick = () => openEmojiPicker(add, (e) => react(m.id, e));
-  box.append(add);
+  if (canHere(P.REACT)) {
+    const add = el('button', 'react add'); add.type = 'button'; add.title = 'Adicionar reação'; add.setAttribute('aria-label', 'Adicionar reação');
+    add.innerHTML = ICON.react; add.onclick = () => openEmojiPicker(add, (e) => react(m.id, e));
+    box.append(add);
+  }
   return box;
 }
 function replyQuote(m) {
@@ -81,7 +83,7 @@ function replyQuote(m) {
 function msgNode(m, prev) {
   const name = userName(m.uid);
   const grouped = !m.reply && prev && prev.uid === m.uid && m.ts - prev.ts < 5 * 60e3 && dayLabel(prev.ts) === dayLabel(m.ts);
-  const hitMe = m.uid !== S.me.uid && (mentionsMe(m.text) || m.reply?.uid === S.me.uid);
+  const hitMe = m.uid !== S.me.uid && (mentionsMe(m.text) || m.everyone || m.reply?.uid === S.me.uid);
   const row = el('div', 'msg' + (grouped ? '' : ' head') + (editingId === m.id ? ' editing' : '') + (hitMe ? ' mentioned' : '') + (flashId === m.id ? ' flash' : ''));
   row.dataset.id = m.id;
   if (m.reply) row.append(replyQuote(m));
@@ -90,7 +92,7 @@ function msgNode(m, prev) {
   } else {
     const av = avatar(name, m.uid); av.classList.add('clickable'); av.onclick = () => openCard(m.uid, av); row.append(av);
     const meta = el('div', 'meta'); const who = el('button', 'who', name); who.type = 'button';
-    who.style.color = S.users.get(m.uid)?.color || colorFor(name); who.onclick = () => openCard(m.uid, who);
+    who.style.color = (S.home ? null : roleColor(m.uid)) || S.users.get(m.uid)?.color || colorFor(name); who.onclick = () => openCard(m.uid, who);
     meta.append(who, el('span', 'when', `${dayLabel(m.ts)} ${time(m.ts)}`)); row.append(meta);
   }
   const body = el('div', 'body');
@@ -115,10 +117,10 @@ function msgNode(m, prev) {
   if (editingId !== m.id) {
     const mine = m.uid === S.me.uid;
     const act = el('div', 'msg-actions');
-    const rb = iconBtn('', 'Reagir', ICON.react, () => openEmojiPicker(rb, (e) => react(m.id, e)));
-    act.append(rb, iconBtn('', 'Responder', ICON.reply, () => startReply(m)));
+    if (canHere(P.REACT)) { const rb = iconBtn('', 'Reagir', ICON.react, () => openEmojiPicker(rb, (e) => react(m.id, e))); act.append(rb); }
+    if (canHere(P.SEND)) act.append(iconBtn('', 'Responder', ICON.reply, () => startReply(m)));
     if (mine) act.append(iconBtn('', 'Editar', ICON.edit, () => startEdit(m.id)));
-    if (mine || (isOwner() && !S.home)) {
+    if (mine || (!S.home && canHere(P.MANAGE_MESSAGES))) {
       act.append(iconBtn('danger', 'Apagar (Shift+clique apaga sem perguntar)', ICON.del, (e) => { if (e.shiftKey) deleteMessage(m.id); else { confirmDel = m.id; renderMessages(); } }));
     }
     row.append(act);
@@ -327,12 +329,14 @@ function updateMentionPop() {
   mentionList = [...S.users.values()]
     .filter((u) => !u.disabled && u.id !== S.me.uid && (u.username.toLowerCase().startsWith(q) || u.name.toLowerCase().includes(q) || userName(u.id).toLowerCase().includes(q)))
     .slice(0, 8);
+  if (!S.home && canHere(P.MENTION_ALL) && 'todos'.startsWith(q)) mentionList.unshift({ id: 'all', username: 'todos', name: 'todos', all: true });
   if (!mentionList.length) return hideMentionPop();
   mentionIdx = Math.min(mentionIdx, mentionList.length - 1);
   const pop = $('mentionPop'); pop.replaceChildren();
   mentionList.forEach((u, i) => {
     const b = el('button', 'mp-item' + (i === mentionIdx ? ' on' : '')); b.type = 'button'; b.setAttribute('role', 'option');
-    b.append(avatar(userName(u.id), u.id), el('span', 'mp-name', userName(u.id)), el('span', 'mp-user', '@' + u.username));
+    if (u.all) b.append(el('span', 'avatar mp-all', '@'), el('span', 'mp-name', '@todos'), el('span', 'mp-user', 'avisa todo mundo que vê o canal'));
+    else b.append(avatar(userName(u.id), u.id), el('span', 'mp-name', userName(u.id)), el('span', 'mp-user', '@' + u.username));
     b.onmousedown = (e) => { e.preventDefault(); pickMention(i); };
     pop.append(b);
   });
@@ -359,6 +363,7 @@ input.addEventListener('blur', () => setTimeout(hideMentionPop, 100));
 let pending = []; // { file, url }
 let uploading = false;
 function addFiles(list) {
+  if (!canHere(P.ATTACH)) { toast('Você não tem permissão para anexar arquivos neste canal.'); return; }
   for (const f of list) {
     if (pending.length >= S.limits.maxFiles) { toast(`No máximo ${S.limits.maxFiles} arquivos por mensagem.`); break; }
     if (f.size > S.limits.maxFileMb * 1048576) { toast(`"${f.name}" passa de ${S.limits.maxFileMb} MB.`); continue; }
@@ -424,6 +429,17 @@ $('composer').addEventListener('submit', async (e) => {
   input.value = ''; autosize(); cancelReply(); hideMentionPop();
   if (isDmKey(key)) touchDm(key);
 });
+
+// mostra ou bloqueia a caixa de mensagem conforme as permissões do canal aberto
+function updateComposer() {
+  const key = curKey(); if (!key) return;
+  const send = canHere(P.SEND);
+  const dmGone = S.home && S.users.get(dmOther(key))?.disabled;
+  $('composer').hidden = !send || dmGone;
+  $('noSend').hidden = send || dmGone;
+  $('attachBtn').hidden = !canHere(P.ATTACH);
+  if (!send) { cancelReply(); hideMentionPop(); }
+}
 
 // ---------- digitando ----------
 const typingNames = new Map();

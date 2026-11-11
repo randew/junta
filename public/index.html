@@ -54,8 +54,10 @@
         <div class="menu-sep" role="separator"></div>
         <button role="menuitem" data-action="notif"><span class="menu-ic">◉</span><span><strong>Notificações</strong><small id="notifState">Desligadas</small></span></button>
         <button role="menuitem" data-action="password"><span class="menu-ic">✱</span><span><strong>Trocar senha</strong></span></button>
-        <div id="ownerItems" hidden>
+        <div id="inviteItem" hidden>
           <button role="menuitem" data-action="invite"><span class="menu-ic">＋</span><span><strong>Convidar amigos</strong><small>Ver e copiar o código de convite.</small></span></button>
+        </div>
+        <div id="ownerItems" hidden>
           <button role="menuitem" data-action="admin"><span class="menu-ic">⚙</span><span><strong>Administração</strong><small>Contas, senhas e backups.</small></span></button>
         </div>
         <button role="menuitem" data-action="logout"><span class="menu-ic">⎋</span><span><strong>Sair da conta</strong></span></button>
@@ -102,6 +104,7 @@
         <span>Respondendo a <strong id="replyName"></strong></span>
         <button type="button" class="icon-btn" id="replyCancel" title="Cancelar resposta (Esc)" aria-label="Cancelar resposta">×</button>
       </div>
+      <p class="no-send" id="noSend" hidden>Você não tem permissão para enviar mensagens neste canal.</p>
       <form class="composer" id="composer" autocomplete="off">
         <button type="button" class="icon-btn attach" id="attachBtn" title="Anexar arquivos" aria-label="Anexar arquivos">
           <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M16.5 6v11.5a4 4 0 0 1-8 0V5a2.5 2.5 0 0 1 5 0v10.5a1 1 0 0 1-2 0V6H10v9.5a2.5 2.5 0 0 0 5 0V5a4 4 0 0 0-8 0v12.5a5.5 5.5 0 0 0 11 0V6h-1.5z"/></svg>
@@ -266,6 +269,7 @@
     <div class="auth-tabs" role="tablist">
       <button type="button" role="tab" data-ss-tab="general" aria-selected="true">Geral</button>
       <button type="button" role="tab" data-ss-tab="channels" aria-selected="false">Canais</button>
+      <button type="button" role="tab" data-ss-tab="roles" aria-selected="false">Cargos</button>
     </div>
     <div id="ssGeneral" class="ss-section">
       <div class="ss-icon-row">
@@ -284,11 +288,11 @@
         <label class="lbl" for="ssName">Nome do servidor</label>
         <div class="ss-inline"><input id="ssName" class="text-in" maxlength="40" required><button type="submit" class="primary">Salvar</button></div>
       </form>
-      <div class="field">
+      <div class="field ss-owner-only">
         <span class="lbl">Posição na barra</span>
         <div class="ss-inline"><button type="button" class="ghost-btn" id="ssUp">↑ Subir</button><button type="button" class="ghost-btn" id="ssDown">↓ Descer</button><small class="help" id="ssPos"></small></div>
       </div>
-      <div class="danger-zone">
+      <div class="danger-zone ss-owner-only">
         <div><strong>Excluir servidor</strong><small class="help" id="ssDeleteHint"></small></div>
         <button type="button" class="danger-btn" id="ssDelete">Excluir servidor</button>
       </div>
@@ -296,6 +300,26 @@
     <div id="ssChannels" class="ss-section" hidden>
       <p class="help">Renomeie direto no campo (Enter salva). As mensagens continuam no canal mesmo com outro nome.</p>
       <div id="ssChannelList"></div>
+    </div>
+    <div id="chanPerms" class="ss-section" hidden>
+      <div class="cp-head"><button type="button" class="ghost" id="cpBack">← Canais</button><strong id="cpTitle"></strong></div>
+      <div class="ss-inline" id="cpPresets"></div>
+      <p class="help" id="cpHint"></p>
+      <div class="cp-layout">
+        <div class="cp-roles" id="cpRoles" aria-label="Cargos"></div>
+        <div class="cp-list" id="cpList"></div>
+      </div>
+      <p class="help">✕ Negar · / Herdar (vale o que o cargo já permite) · ✓ Permitir. Quando cargos discordam, quem tem algum cargo com "Permitir" pode.</p>
+    </div>
+    <div id="ssRoles" class="ss-section" hidden>
+      <div class="roles-layout">
+        <div class="roles-side">
+          <button type="button" class="ghost-btn" id="roleNew">+ Novo cargo</button>
+          <p class="help">Arraste para ordenar: quem está mais acima manda em quem está abaixo.</p>
+          <div id="roleList"></div>
+        </div>
+        <div class="role-editor" id="roleEditor"></div>
+      </div>
     </div>
     <div class="modal-actions"><button type="button" class="primary" id="ssClose">Fechar</button></div>
   </div>
@@ -459,6 +483,7 @@
 <script src="js/sortable.js"></script>
 <script src="js/layout.js"></script>
 <script src="js/servers.js"></script>
+<script src="js/roles.js"></script>
 <script src="js/chat.js"></script>
 <script src="js/unread.js"></script>
 <script src="js/dm.js"></script>

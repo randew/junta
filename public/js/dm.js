@@ -35,7 +35,7 @@ function openDm(uid, opts = {}) {
   $('channelSub').textContent = S.users.get(uid)?.disabled ? 'Conta removida' : 'Conversa direta';
   $('dmEmpty').hidden = true; $('voiceView').hidden = true; $('textView').hidden = false;
   $('msgInput').placeholder = `Mensagem para @${name}`;
-  $('composer').hidden = !!S.users.get(uid)?.disabled;
+  updateComposer();
   renderRail(); renderChannels(); renderMembers();
   openText(S.dmKey, opts);
   $('app').classList.remove('drawer');

@@ -79,6 +79,21 @@ O navegador só libera microfone, câmera e captura de tela em **HTTPS** (ou em 
 
 O lápis ao lado do seu nome abre o editor de perfil, com prévia ao vivo: **foto** (arraste e dê zoom para enquadrar), **nome de exibição**, **apelido** neste servidor, **pronomes**, **status personalizado**, **sobre mim** e **cor do perfil**. Clique na foto ou no nome de alguém para ver o cartão de perfil.
 
+## Cargos e permissões
+
+Cada servidor tem os próprios cargos. Abra a engrenagem ao lado do nome do servidor → **Cargos**.
+
+- **@todos** é o cargo base: vale para todo mundo e não pode ser apagado. Por padrão permite ver canais, enviar mensagens, anexar, reagir, mencionar @todos, entrar em salas de voz, falar e transmitir.
+- **+ Novo cargo** cria um cargo. Dá para mudar nome, cor e ligar **"Mostrar separado na lista de membros"**.
+- **Ordem = hierarquia:** arraste os cargos. Quem está mais acima manda em quem está abaixo; ninguém edita, dá ou tira um cargo do mesmo nível ou acima do seu, nem concede uma permissão que não tem.
+- **Dar um cargo:** pela lista de membros do cargo no painel, ou clicando no nome da pessoa → cartão de perfil → **+**.
+- **Permissões:** gerenciar cargos, gerenciar servidor (nome e ícone), gerenciar canais, criar convites, enviar mensagens, anexar, reagir, mencionar @todos, gerenciar mensagens (apagar as dos outros), entrar em voz, falar, transmitir tela e câmera, silenciar e desconectar pessoas, e **Administrador** (pode tudo neste servidor).
+- **Permissões por canal:** em **Canais**, o botão ⚙ ao lado de cada canal. Atalhos **🔒 Privado** (só os cargos marcados veem; o canal ganha um cadeado) e **Só leitura**. Cada permissão tem três estados por cargo: ✕ negar, / herdar do cargo, ✓ permitir. Se dois cargos da pessoa discordam, o "permitir" vence.
+- **@todos nas mensagens:** avisa todo mundo que vê o canal (para quem tem a permissão).
+- **Moderação de voz:** com a permissão, clique no bloco de alguém na sala para **silenciar para todos** ou **desconectar**.
+- **Só o dono do Junta** cria e exclui servidores, muda a posição deles na barra e gera um novo código de convite. Ele sempre tem todas as permissões.
+- A voz é ponto a ponto: "falar" e "transmitir" são aplicados por quem ouve (o áudio de quem não pode falar fica mudo para os outros) e pelo servidor, que recusa começar a transmissão.
+
 ## Voz, tela e câmera
 
 - **Câmera:** botão **Câmera** dentro da sala (720p a 30 fps). A sua imagem aparece espelhada só para você. Escolha a câmera em **Áudio**.
@@ -105,6 +120,8 @@ lib/db.js            banco SQLite (tabelas e atualizações automáticas)
 lib/accounts.js      senhas, sessões, cadastro, login, troca de senha
 lib/messages.js      histórico, envio, respostas, reações, menções, não lidas, busca
 lib/channels.js      servidores, canais, mensagens diretas e quem pode ver o quê
+lib/perms.js         cargos e cálculo das permissões
+lib/roles.js         criar, editar, ordenar e dar cargos; permissões por canal
 lib/previews.js      prévia de links (com bloqueio da rede interna)
 lib/files.js         anexos e fotos de perfil
 lib/servers.js       criar/apagar servidores e canais, perfil e apelidos
@@ -115,7 +132,7 @@ public/js/*.js       a interface, um arquivo por assunto (core → … → auth,
 test/                testes automáticos
 ```
 
-**Testes automáticos:** `npm test` sobe um Junta temporário (num banco à parte, apagado no fim) e confere cadastro, permissões, menções, não lidas, respostas, reações, privacidade das mensagens diretas, busca, administração, backup e a proteção das prévias de links.
+**Testes automáticos:** `npm test` sobe um Junta temporário (num banco à parte, apagado no fim) e confere cadastro, cargos e permissões (canais privados, só leitura, hierarquia, voz), menções, não lidas, respostas, reações, privacidade das mensagens diretas, busca, administração, backup e a proteção das prévias de links.
 
 ## Limites conhecidos
 

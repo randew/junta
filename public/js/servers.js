@@ -1,4 +1,4 @@
-// Junta — configurações do servidor (dono): nome, ícone, posição, canais e exclusão
+// Junta — configurações do servidor: nome, ícone, posição, canais, cargos e exclusão (cada parte conforme as permissões)
 'use strict';
 
 let ssId = null, ssTab = 'general';
@@ -12,10 +12,15 @@ function serverIcon(s, cls = 'rail-ico') {
   const im = el('img', cls); im.src = url; im.alt = ''; return im;
 }
 
+// abas que esta pessoa pode usar neste servidor
+function ssTabsAllowed(id = ssId) {
+  return { general: canSrv(P.MANAGE_SERVER, id), channels: canSrv(P.MANAGE_CHANNELS, id), roles: canSrv(P.MANAGE_ROLES, id) };
+}
 function openServerSettings(id = S.serverId) {
-  if (!isOwner()) return;
+  const ok = ssTabsAllowed(id);
+  if (!ok.general && !ok.channels && !ok.roles) return;
   ssId = id; $('serverModal').hidden = false;
-  showSsTab(ssTab);
+  showSsTab(ok[ssTab] ? ssTab : Object.keys(ok).find((k) => ok[k]));
 }
 function closeServerSettings() { $('serverModal').hidden = true; ssId = null; }
 $('ssClose').onclick = closeServerSettings;
@@ -25,8 +30,10 @@ $('serverMenuBtn').onclick = () => openServerSettings();
 
 function showSsTab(tab) {
   ssTab = tab;
-  for (const b of document.querySelectorAll('[data-ss-tab]')) b.setAttribute('aria-selected', String(b.dataset.ssTab === tab));
-  $('ssGeneral').hidden = tab !== 'general'; $('ssChannels').hidden = tab !== 'channels';
+  const ok = ssTabsAllowed();
+  for (const b of document.querySelectorAll('[data-ss-tab]')) { b.hidden = !ok[b.dataset.ssTab]; b.setAttribute('aria-selected', String(b.dataset.ssTab === tab)); }
+  $('ssGeneral').hidden = tab !== 'general'; $('ssChannels').hidden = tab !== 'channels'; $('ssRoles').hidden = tab !== 'roles';
+  $('chanPerms').hidden = true; cpKey = null;
   renderServerSettings(true);
 }
 
@@ -35,6 +42,11 @@ function renderServerSettings(fresh) {
   const s = ssServer();
   if (!s) { if (!$('serverModal').hidden) { closeServerSettings(); } return; }
   $('ssTitle').textContent = `Configurações de ${s.name}`;
+  const ok = ssTabsAllowed();
+  if (!ok[ssTab]) { const first = Object.keys(ok).find((k) => ok[k]); if (!first) return closeServerSettings(); return showSsTab(first); }
+  for (const e of document.querySelectorAll('.ss-owner-only')) e.hidden = !isOwner(); // posição e exclusão: só o dono do Junta
+  if (ssTab === 'roles') renderRolesTab();
+  if (cpKey) renderChannelPerms();
   // geral
   const prev = $('ssIcon'); prev.replaceChildren(serverIcon(s, 'ss-ico-img'));
   $('ssIconRemove').hidden = !s.icon;
@@ -66,7 +78,14 @@ function renderServerSettings(fresh) {
       dn.onclick = () => emitP('channel-move', { key: keyOf(s.id, c.id), dir: 1 }).catch((x) => toast(x.message));
       const del = el('button', 'icon-btn danger', '×'); del.type = 'button'; del.title = 'Apagar canal'; del.setAttribute('aria-label', `Apagar ${c.name}`);
       del.onclick = () => deleteChannel(c, s.id);
-      row.append(inp, up, dn, del);
+      row.append(inp);
+      if (canSrv(P.MANAGE_ROLES, s.id)) {
+        const pb = el('button', 'icon-btn' + (c.private ? ' on-lock' : ''), c.private ? '🔒' : '⚙'); pb.type = 'button';
+        pb.title = 'Permissões do canal'; pb.setAttribute('aria-label', `Permissões de ${c.name}`);
+        pb.onclick = () => openChannelPerms(keyOf(s.id, c.id));
+        row.append(pb);
+      }
+      row.append(up, dn, del);
       box.append(row);
     });
     const add = el('button', 'ghost-btn ss-add', type === 'text' ? '+ Canal de texto' : '+ Sala de voz'); add.type = 'button';

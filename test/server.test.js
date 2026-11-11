@@ -28,7 +28,7 @@ test('contas: convite, dono e login', async () => {
 });
 
 test('só o dono cria canais', async () => {
-  assert.match((await bia.emit('create-channel', { serverId: 'geral', name: 'x', type: 'text' })).error, /dono/);
+  assert.match((await bia.emit('create-channel', { serverId: 'geral', name: 'x', type: 'text' })).error, /permissão/);
   const r = await andre.emit('create-channel', { serverId: 'geral', name: 'Avisos', type: 'text' });
   assert.equal(r.ok, true);
 });
@@ -170,7 +170,7 @@ test('gerenciar servidores e canais (só o dono)', async () => {
   // criar
   const made = await andre.emit('create-server', 'Jogos');
   assert.equal(made.ok, true);
-  assert.match((await bia.emit('server-update', { id: made.id, name: 'x' })).error, /dono/);
+  assert.match((await bia.emit('server-update', { id: made.id, name: 'x' })).error, /permissão/);
   // renomear
   assert.equal((await andre.emit('server-update', { id: made.id, name: 'Jogatina' })).ok, true);
   let list = (await bia.emit('hello', {})).servers;
@@ -221,4 +221,115 @@ test('reordenar arrastando: ordem completa, só o dono, só itens válidos', asy
   assert.deepEqual(after.filter((c) => c.type === 'text').map((c) => c.id), newOrder);
   assert.ok(after.findIndex((c) => c.type === 'voice') > after.findLastIndex((c) => c.type === 'text'), 'voz continua depois do texto');
   assert.match((await andre.emit('channel-reorder', { serverId: 'geral', type: 'text', order: ['sala-1', ...newOrder.slice(1)] })).error, /mudou/, 'não mistura tipos');
+});
+
+// ---------- cargos e permissões ----------
+const { P } = require('../lib/perms');
+async function roleIn(serverId, name, bits) {
+  const r = await andre.emit('role-create', { serverId, name });
+  await andre.emit('role-update', { id: r.id, perms: bits });
+  return r.id;
+}
+const chanOf = async (p, serverId, id) => (await p.emit('hello', {})).servers.find((s) => s.id === serverId)?.channels.find((c) => c.id === id);
+
+test('cargo dá permissão: Moderador cria canais e apaga mensagens dos outros', async () => {
+  const mod = await roleIn('geral', 'Moderador', P.MANAGE_CHANNELS | P.MANAGE_MESSAGES);
+  assert.match((await bia.emit('create-channel', { serverId: 'geral', name: 'mods', type: 'text' })).error, /permissão/);
+  assert.equal((await andre.emit('member-role', { userId: bia.id, roleId: mod, add: true })).ok, true);
+  assert.equal((await bia.emit('create-channel', { serverId: 'geral', name: 'Clips da Bia', type: 'text' })).ok, true);
+  const m = await caio.emit('message', { key: 'geral/bate-papo', text: 'spam' });
+  assert.equal((await bia.emit('message-delete', m.id)).ok, true);
+  // o cargo vale só neste servidor
+  assert.match((await bia.emit('create-channel', { serverId: 'trabalho', name: 'x', type: 'text' })).error, /permissão/);
+});
+
+test('canal privado: some da lista, da busca, dos avisos e do acesso direto', async () => {
+  const time = await roleIn('geral', 'Equipe', 0);
+  await andre.emit('create-channel', { serverId: 'geral', name: 'segredo', type: 'text' });
+  const key = 'geral/segredo';
+  const everyone = (await andre.emit('hello', {})).roles.geral.find((r) => r.isDefault).id;
+  assert.equal((await andre.emit('channel-perms', { key, roleId: everyone, allow: 0, deny: P.VIEW })).ok, true);
+  assert.equal((await andre.emit('channel-perms', { key, roleId: time, allow: P.VIEW, deny: 0 })).ok, true);
+  await andre.emit('member-role', { userId: bia.id, roleId: time, add: true });
+  assert.equal(await chanOf(caio, 'geral', 'segredo'), undefined, 'o Caio não vê o canal');
+  assert.equal((await chanOf(bia, 'geral', 'segredo')).private, true, 'a Bia vê, marcado como privado');
+  assert.match((await caio.emit('join-text', key)).error, /acesso/);
+  const n = caio.events.length;
+  await bia.emit('message', { key, text: 'plano secreto' });
+  await sleep(150);
+  assert.ok(!caio.events.slice(n).some((e) => e.ev === 'activity' && e.data.key === key), 'o Caio não recebe aviso');
+  assert.equal((await caio.emit('search', { q: 'secreto', scope: 'geral' })).results.length, 0);
+  assert.equal((await bia.emit('search', { q: 'secreto', scope: 'geral' })).results.length, 1);
+  // tirar o cargo: a Bia perde o acesso na hora
+  await bia.emit('join-text', key);
+  await andre.emit('member-role', { userId: bia.id, roleId: time, add: false });
+  await bia.waitFor('access-lost');
+  assert.match((await bia.emit('join-text', key)).error, /acesso/);
+});
+
+test('canal só de leitura e @todos', async () => {
+  await andre.emit('create-channel', { serverId: 'geral', name: 'avisos', type: 'text' });
+  const key = 'geral/avisos';
+  const everyone = (await andre.emit('hello', {})).roles.geral.find((r) => r.isDefault).id;
+  await andre.emit('channel-perms', { key, roleId: everyone, allow: 0, deny: P.SEND | P.REACT });
+  assert.equal((await chanOf(caio, 'geral', 'avisos')).perms & P.SEND, 0);
+  assert.match((await caio.emit('message', { key, text: 'oi' })).error, /permissão/);
+  const sent = await andre.emit('message', { key, text: 'Reunião hoje, @todos!' });
+  const act = await caio.waitFor('activity', (a) => a.key === key);
+  assert.ok(act.mentions.includes(caio.id) && act.mentions.includes(bia.id), '@todos menciona todo mundo que vê o canal');
+  assert.match((await caio.emit('react', { id: sent.id, emoji: '🎉' })).error, /permissão/);
+  await andre.emit('react', { id: sent.id, emoji: '🎉' });
+  assert.equal((await caio.emit('react', { id: sent.id, emoji: '🎉' })).ok, true, 'entrar numa reação que já existe pode');
+  // sem a permissão, @todos vira texto comum
+  await andre.emit('role-update', { id: everyone, perms: (await andre.emit('hello', {})).roles.geral.find((r) => r.isDefault).perms & ~P.MENTION_ALL });
+  const plain = await caio.emit('message', { key: 'geral/bate-papo', text: 'olá @todos' });
+  assert.ok(plain.ok);
+  await sleep(100);
+  const last = bia.events.filter((e) => e.ev === 'activity' && e.data.key === 'geral/bate-papo').at(-1).data;
+  assert.deepEqual(last.mentions, []);
+});
+
+test('hierarquia: ninguém mexe em quem está acima', async () => {
+  // começa sem os cargos dos testes anteriores
+  for (const rid of (await andre.emit('hello', {})).memberRoles.geral?.[bia.id] || []) await andre.emit('member-role', { userId: bia.id, roleId: rid, add: false });
+  const chefe = await roleIn('geral', 'Chefe', P.MANAGE_ROLES | P.MANAGE_CHANNELS);
+  const baixo = await roleIn('geral', 'Novato', 0); // criado depois: entra abaixo do Chefe
+  const roles = (await andre.emit('hello', {})).roles.geral;
+  assert.ok(roles.find((r) => r.id === chefe).pos > roles.find((r) => r.id === baixo).pos);
+  await andre.emit('member-role', { userId: bia.id, roleId: chefe, add: true });
+  assert.equal((await bia.emit('member-role', { userId: caio.id, roleId: baixo, add: true })).ok, true, 'cargo abaixo: pode dar');
+  assert.match((await bia.emit('member-role', { userId: caio.id, roleId: chefe, add: true })).error, /permissão/, 'o próprio nível: não');
+  assert.match((await bia.emit('role-update', { id: chefe, perms: P.ADMIN })).error, /permissão/);
+  assert.match((await bia.emit('role-update', { id: baixo, perms: P.MANAGE_SERVER })).error, /que você mesmo tem/, 'não dá permissão que não tem');
+  assert.equal((await bia.emit('role-update', { id: baixo, perms: P.MANAGE_CHANNELS, color: '#46c28a' })).ok, true);
+  assert.match((await bia.emit('member-role', { userId: andre.id, roleId: baixo, add: false })).error, /permissão/, 'não mexe no dono');
+  const order = (await andre.emit('hello', {})).roles.geral.filter((r) => !r.isDefault).map((r) => r.id);
+  const up = [baixo, ...order.filter((x) => x !== baixo)];
+  assert.match((await bia.emit('role-reorder', { serverId: 'geral', order: up })).error, /permissão/, 'não põe cargo acima do seu');
+  assert.equal((await andre.emit('role-delete', { id: baixo })).ok, true);
+  await andre.emit('member-role', { userId: bia.id, roleId: chefe, add: false });
+});
+
+test('voz: entrar, transmitir e moderar conforme os cargos', async () => {
+  const everyone = (await andre.emit('hello', {})).roles.geral.find((r) => r.isDefault);
+  await andre.emit('channel-perms', { key: 'geral/sala-2', roleId: everyone.id, allow: 0, deny: P.CONNECT });
+  assert.match((await caio.emit('voice-join', 'geral/sala-2')).error, /permissão/);
+  assert.ok(Array.isArray(await caio.emit('voice-join', 'geral/sala-1')));
+  await andre.emit('channel-perms', { key: 'geral/sala-1', roleId: everyone.id, allow: 0, deny: P.STREAM });
+  caio.socket.emit('voice-update', { sharing: true });
+  const st = await caio.waitFor('voice-state', (v) => v['geral/sala-1']?.some((m) => m.uid === caio.id && m.stream === false));
+  assert.equal(st['geral/sala-1'].find((m) => m.uid === caio.id).sharing, false, 'sem "Transmitir" não compartilha');
+  const sid = st['geral/sala-1'].find((m) => m.uid === caio.id).id;
+  assert.match((await bia.emit('voice-moderate', { sid, mute: true })).error, /permissão/);
+  const mod = await roleIn('geral', 'Moderador de voz', P.MUTE_MEMBERS | P.MOVE_MEMBERS);
+  await andre.emit('member-role', { userId: bia.id, roleId: mod, add: true });
+  assert.equal((await bia.emit('voice-moderate', { sid, mute: true })).ok, true);
+  await caio.waitFor('voice-state', (v) => v['geral/sala-1']?.some((m) => m.uid === caio.id && m.serverMuted));
+  assert.equal((await bia.emit('voice-disconnect', { sid })).ok, true);
+  await caio.waitFor('voice-kicked');
+  // quem não vê a sala privada também não sabe quem está nela
+  await andre.emit('channel-perms', { key: 'geral/sala-1', roleId: everyone.id, allow: 0, deny: P.VIEW });
+  await andre.emit('voice-join', 'geral/sala-1');
+  const v = await caio.waitFor('voice-state', () => true);
+  assert.equal(v['geral/sala-1'], undefined);
 });

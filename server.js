@@ -17,6 +17,7 @@ const admin = require('./lib/admin');
 const messages = require('./lib/messages');
 const servers = require('./lib/servers');
 const voice = require('./lib/voice');
+const roles = require('./lib/roles');
 const { createRealtime } = require('./lib/realtime');
 const { serverList, dmList } = require('./lib/channels');
 
@@ -60,7 +61,7 @@ function start({ port = process.env.PORT || 3000, backups = true, log = console.
       ctx.rt.broadcastPresence();
       reply(cb, {
         sid: socket.id, user: accounts.publicUser(accounts.fullUser(me().id)),
-        servers: serverList(), voice: ctx.rt.voiceSnapshot(), ...ctx.rt.presencePayload(),
+        servers: serverList(me().id), voice: ctx.rt.voiceFor(me().id), ...ctx.rt.presencePayload(),
         unread: messages.unreadFor(me().id), dms: dmList(me().id),
       });
     });
@@ -74,6 +75,7 @@ function start({ port = process.env.PORT || 3000, backups = true, log = console.
     messages.register(socket, ctx);
     servers.register(socket, ctx);
     voice.register(socket, ctx);
+    roles.register(socket, ctx);
 
     socket.on('disconnect', () => {
       ctx.rt.leaveVoice(socket);

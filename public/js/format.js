@@ -43,6 +43,9 @@ function inline(text, parent, depth = 0) {
     else if (g.ital || g.ital2) nest('em', null, g.ital || g.ital2);
     else if (g.angle) parent.append(link(g.angle, g.angle));
     else if (g.url) parent.append(link(g.url, g.url));
+    else if (g.mention && /^(todos|everyone)$/i.test(g.mention)) {
+      parent.append(el('span', 'mention all', '@todos'));
+    }
     else if (g.mention) {
       const u = userByUsername(g.mention);
       if (!u) parent.append(m[0]);

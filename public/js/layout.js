@@ -41,18 +41,19 @@ function renderChannels() {
   if (S.home) { $('serverMenuBtn').hidden = true; renderDmList(box); return; }
   const s = currentServer(); if (!s) return;
   $('serverName').textContent = s.name;
-  $('serverMenuBtn').hidden = !isOwner();
+  $('serverMenuBtn').hidden = !(canSrv(P.MANAGE_SERVER) || canSrv(P.MANAGE_CHANNELS) || canSrv(P.MANAGE_ROLES));
+  const manage = canSrv(P.MANAGE_CHANNELS);
   for (const [type, label] of [['text', 'Canais de texto'], ['voice', 'Voz e tela']]) {
     const cat = el('div', 'cat'); cat.append(el('span', null, label));
-    if (isOwner()) {
+    if (manage) {
       const add = el('button', null, '+'); add.title = 'Criar canal'; add.setAttribute('aria-label', 'Criar canal');
       add.onclick = () => createChannel(type); cat.append(add);
     }
     box.append(cat);
     // cada tipo num grupo próprio: dá para arrastar dentro dele
-    const group = el('div', 'chan-group' + (isOwner() ? ' can-sort' : '')); group.dataset.type = type; box.append(group);
+    const group = el('div', 'chan-group' + (manage ? ' can-sort' : '')); group.dataset.type = type; box.append(group);
     makeSortable(group, {
-      selector: '.chan-wrap', enabled: () => isOwner(),
+      selector: '.chan-wrap', enabled: () => canSrv(P.MANAGE_CHANNELS),
       onDrop(order, before) {
         const sid = s.id;
         const rest = s.channels.filter((c) => c.type !== type);
@@ -66,10 +67,11 @@ function renderChannels() {
       const un = S.unread[keyOf(s.id, c.id)];
       const b = el('button', 'chan' + (c.id === S.channelId ? ' active' : '') + (un ? ' unread' : ''));
       b.append(el('span', 'glyph', type === 'text' ? '#' : '◖'), el('span', 'label', c.name));
+      if (c.private) { const lk = el('span', 'lock', '🔒'); lk.title = 'Canal privado'; b.append(lk); }
       if (un?.m) b.append(badge(un.m));
       b.onclick = () => { selectChannel(c.id); document.getElementById('app').classList.remove('drawer'); };
       wrap.append(b);
-      if (isOwner()) {
+      if (manage) {
         const del = el('button', 'chan-del', '×'); del.title = 'Apagar canal'; del.setAttribute('aria-label', `Apagar canal ${c.name}`);
         del.onclick = () => deleteChannel(c); wrap.append(del);
       }
@@ -189,9 +191,18 @@ function renderMembers() {
     .map((u) => ({ ...u, ...(live.get(u.id) || { status: 'offline', where: null }), me: u.id === S.me.uid }))
     .sort((a, b) => userName(a.id).localeCompare(userName(b.id), 'pt-BR'));
   const box = $('memberList'); box.replaceChildren();
+  // cargos "mostrados separadamente" viram grupos próprios (quem está online), do mais alto para o mais baixo
+  const hoisted = S.home ? [] : rolesIn().filter((r) => r.hoist && !r.isDefault);
+  const groupOf = new Map();
+  for (const p of people) {
+    if (p.status === 'offline') continue;
+    const top = rolesOfUser(p.id).find((r) => r.hoist);
+    if (top) groupOf.set(p.id, top.id);
+  }
   const groups = [
-    ['Online', people.filter((p) => p.status === 'online' || p.status === 'dnd')],
-    ['Ausente', people.filter((p) => p.status === 'idle')],
+    ...hoisted.map((r) => [r.name, people.filter((p) => groupOf.get(p.id) === r.id), r.color]),
+    ['Online', people.filter((p) => !groupOf.has(p.id) && (p.status === 'online' || p.status === 'dnd'))],
+    ['Ausente', people.filter((p) => !groupOf.has(p.id) && p.status === 'idle')],
     ['Offline', people.filter((p) => p.status === 'offline')],
   ];
   for (const [label, list] of groups) {
@@ -206,6 +217,7 @@ function renderMembers() {
       w.append(avatar(shown, p.id), el('span', 'sdot s-' + p.status));
       const txt = el('div', 'txt');
       const nm = el('span', 'nm', shown);
+      const rc = S.home ? null : roleColor(p.id); if (rc) nm.style.color = rc;
       if (p.role === 'owner') { const c = el('span', 'crown', '★'); c.title = 'Dono do Junta'; nm.append(c); }
       if (p.me) nm.append(el('span', 'you', ' (você)'));
       txt.append(nm);
@@ -242,6 +254,7 @@ function selectChannel(id, opts = {}) {
   if (c.type === 'text') {
     $('msgInput').placeholder = `Mensagem em #${c.name}`;
     openText(keyOf(S.serverId, id), opts);
+    updateComposer();
   } else {
     renderStage();
   }

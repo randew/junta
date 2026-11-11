@@ -3,11 +3,12 @@
 
 // ---------- eventos do servidor ----------
 socket.on('servers', (servers) => {
-  S.servers = servers; renderRail();
+  S.servers = servers; renderRail(); refreshInviteItem();
   if (!$('serverModal').hidden) renderServerSettings();
   if (S.home) return;
   if (!currentServer()) { selectServer(S.servers[0].id); return; }
-  if (!currentChannel()) { toast('O canal que você estava foi apagado.'); selectServer(S.serverId); return; }
+  if (!currentChannel()) { toast('O canal que você estava foi apagado ou ficou privado.'); selectServer(S.serverId); return; }
+  updateComposer();
   renderChannels();
   // nome do servidor ou do canal pode ter mudado: atualiza o topo
   const c = currentChannel();
@@ -15,16 +16,26 @@ socket.on('servers', (servers) => {
   $('channelSub').textContent = c.type === 'text' ? `Conversa em ${currentServer().name}` : 'Voz e compartilhamento de tela';
   if (c.type === 'text') $('msgInput').placeholder = `Mensagem em #${c.name}`;
 });
-socket.on('voice-kicked', () => { if (S.voiceKey) leaveVoice(); });
+socket.on('voice-kicked', (d) => {
+  if (!S.voiceKey) return;
+  leaveVoice();
+  toast(d?.by ? `${userName(d.by)} desconectou você da sala de voz.` : 'Você saiu da sala de voz: ela foi apagada ou você perdeu o acesso.');
+});
+// perdeu o acesso ao canal aberto (cargo retirado ou canal ficou privado)
+socket.on('access-lost', () => { toast('Você não tem mais acesso a esse canal.'); });
 
 socket.on('voice-state', (v) => {
   roomEvents(v);
   S.voice = v;
   renderRail(); renderChannels(); renderStage(); renderMembers();
+  enforceVoicePerms();
 });
 
-function applyPresence({ users, online, nicks }) {
+function applyPresence({ users, online, nicks, roles, memberRoles }) {
   S.users = new Map(users.map((u) => [u.id, u])); S.online = online; S.nicks = nicks || {};
+  S.roles = roles || {}; S.memberRoles = memberRoles || {};
+  if (!$('serverModal').hidden) renderServerSettings();
+  refreshInviteItem();
   const meU = S.users.get(S.me.uid); if (meU) { S.me.name = meU.name; S.me.role = meU.role; }
   renderMe(); renderMembers();
   if (S.messages.length) renderMessages(); // nomes e fotos podem ter mudado

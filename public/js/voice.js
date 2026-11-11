@@ -89,7 +89,10 @@ function stopMic() {
   A.pttDown = false; updateGate();
 }
 
-const micOpen = () => !!A.raw && !S.muted && (cfg.mode === 'vad' || A.pttDown);
+// minha entrada na sala: sem "Falar" ou silenciado por um moderador, o microfone fica fechado
+const myVoice = () => (S.voice[S.voiceKey] || []).find((m) => m.id === S.me.id);
+const forcedMute = () => { const m = myVoice(); return !!m && (m.speak === false || m.serverMuted); };
+const micOpen = () => !!A.raw && !S.muted && !forcedMute() && (cfg.mode === 'vad' || A.pttDown);
 function updateGate() {
   if (A.gate) A.gate.gain.setTargetAtTime(micOpen() ? 1 : 0, A.ctx.currentTime, 0.012); // rampa curta evita estalos
   $('pttBtn').classList.toggle('down', A.pttDown && !S.muted);
@@ -196,11 +199,30 @@ function setVol(kind, uid, v) {
 function memberUid(id) { return (S.voice[S.voiceKey] || []).find((m) => m.id === id)?.uid; }
 function applyVolumes(p, name) {
   if (!name) return;
+  // quem ouve também respeita as permissões: voz de quem não pode falar (ou foi silenciado) e
+  // som de tela de quem não pode transmitir não tocam
+  const mem = (S.voice[S.voiceKey] || []).find((x) => S.peers[x.id] === p);
   for (const m of Object.values(p.media)) {
     if (!m.audio) continue;
     const isScreen = m.stream.getVideoTracks().length > 0;
     m.audio.volume = Math.min(1, getVol(isScreen ? 'screen' : 'voice', name) / 100);
+    m.audio.muted = !!mem && (isScreen ? mem.stream === false : (mem.speak === false || !!mem.serverMuted));
   }
+}
+// depois de cada mudança na sala: aplica permissões nos áudios e no meu microfone
+function enforceVoicePerms() {
+  for (const [id, p] of Object.entries(S.peers)) applyVolumes(p, memberUid(id));
+  const m = myVoice(); if (!m) return;
+  updateGate();
+  const blocked = forcedMute();
+  $('muteBtn').disabled = blocked;
+  $('muteBtn').setAttribute('aria-pressed', String(S.muted || blocked));
+  $('muteBtn').title = m.serverMuted ? 'Um moderador silenciou você' : m.speak === false ? 'Você não tem permissão para falar nesta sala' : (S.muted ? 'Ativar microfone' : 'Silenciar');
+  const streamOk = m.stream !== false;
+  $('shareBtn').disabled = !streamOk && !S.screen; $('camBtn').disabled = !streamOk && !S.cam;
+  $('shareBtn').title = streamOk ? '' : 'Você não tem permissão para transmitir nesta sala';
+  $('camBtn').title = $('shareBtn').title;
+  if (!streamOk && (S.screen || S.cam)) { stopScreen(); stopCamera(); toast('Você perdeu a permissão de transmitir nesta sala.'); }
 }
 
 // ---------- voz: palco ----------
@@ -220,10 +242,12 @@ function renderStage() {
     $('voiceEmptyText').textContent = members.length
       ? `${members.map((m) => m.name).join(', ')} ${members.length === 1 ? 'está' : 'estão'} aqui.` + (members.some((m) => m.sharing) ? ' Tem tela sendo compartilhada.' : '')
       : 'Ninguém por aqui ainda. Entre para falar e compartilhar sua tela.';
-    $('joinVoiceBtn').textContent = S.voiceKey ? 'Mudar para esta sala' : 'Entrar na sala';
+    const can = canHere(P.CONNECT);
+    $('joinVoiceBtn').disabled = !can;
+    $('joinVoiceBtn').textContent = !can ? 'Sem permissão para entrar' : S.voiceKey ? 'Mudar para esta sala' : 'Entrar na sala';
     return;
   }
-  const screens = members.filter((m) => m.sharing).map((m) => {
+  const screens = members.filter((m) => m.sharing && m.stream !== false).map((m) => {
     const isMe = m.id === S.me.id;
     return screenTile(m, isMe ? S.screen : remoteVideo(m, 'screen'), isMe);
   });
@@ -251,19 +275,35 @@ function volPanel(kind, m) {
   r.oninput = () => { const v = +r.value; val.textContent = v + '%'; setVol(kind, m.uid, v); };
   r.onchange = () => renderStage();
   box.append(lab, r);
+  // moderação: só para quem tem a permissão e está acima da pessoa
+  if (kind === 'voice' && S.voiceKey && topOf(m.uid) < myTop()) {
+    const acts = el('div', 'mod-acts');
+    if (canChan(S.voiceKey, P.MUTE_MEMBERS)) {
+      const b = el('button', 'ghost-btn', m.serverMuted ? 'Deixar falar' : 'Silenciar para todos'); b.type = 'button';
+      b.onclick = () => emitP('voice-moderate', { sid: m.id, mute: !m.serverMuted }).catch((x) => toast(x.message));
+      acts.append(b);
+    }
+    if (canChan(S.voiceKey, P.MOVE_MEMBERS)) {
+      const b = el('button', 'ghost-btn danger-text', 'Desconectar'); b.type = 'button';
+      b.onclick = () => emitP('voice-disconnect', { sid: m.id }).then(() => { openVol = null; }).catch((x) => toast(x.message));
+      acts.append(b);
+    }
+    if (acts.childNodes.length) box.append(acts);
+  }
   return box;
 }
 
 function personTile(m) {
   const isMe = m.id === S.me.id;
-  const cam = m.camera ? (isMe ? S.cam : remoteVideo(m, 'cam')) : null;
+  const cam = m.camera && m.stream !== false ? (isMe ? S.cam : remoteVideo(m, 'cam')) : null;
   const t = el('div', 'tile' + (isMe ? '' : ' person') + (cam ? ' has-cam' : '') + (S.speaking.has(m.id) ? ' speaking' : '')); t.dataset.pid = m.id;
   if (cam) {
     const v = document.createElement('video'); v.className = 'cam' + (isMe ? ' mirror' : ''); // a sua imagem aparece espelhada, como num espelho
     v.autoplay = true; v.playsInline = true; v.muted = true; v.srcObject = cam; t.append(v);
   } else t.append(avatar(m.name, m.uid));
   const n = el('div', 'name'); n.append(el('span', null, m.name + (isMe ? ' (você)' : '')));
-  if (m.muted) n.append(el('span', 'muted-ic', '✕'));
+  if (m.muted || m.speak === false || m.serverMuted) n.append(el('span', 'muted-ic', '✕'));
+  if (m.serverMuted) { const b = el('span', 'tag mod-tag', 'SILENCIADO'); b.title = 'Silenciado por um moderador'; n.append(b); }
   if (!isMe && getVol('voice', m.uid) !== 100) n.append(el('span', 'lowvol', getVol('voice', m.uid) + '%'));
   t.append(n);
   if (!isMe) {
@@ -406,6 +446,7 @@ function applyMute() {
   updateGate();
 }
 function toggleMute() {
+  if (forcedMute()) { toast(myVoice()?.serverMuted ? 'Um moderador silenciou você nesta sala.' : 'Você não tem permissão para falar nesta sala.'); return; }
   if (!A.raw) { toast('Nenhum microfone disponível. Verifique a permissão do navegador.'); return; }
   S.muted = !S.muted; applyMute(); socket.emit('voice-update', { muted: S.muted });
 }
@@ -505,6 +546,7 @@ syncSettingsUI();
 // Clique em "Compartilhar tela": primeiro escolhe a predefinição, depois a tela
 function toggleScreen() {
   if (S.screen) { stopScreen(); return; }
+  if (myVoice()?.stream === false) { toast('Você não tem permissão para transmitir nesta sala.'); return; }
   if (!navigator.mediaDevices?.getDisplayMedia) { toast('Este navegador não permite compartilhar tela. Use Chrome, Edge ou Firefox no computador.'); return; }
   const r = document.querySelector(`input[name=preset][value="${cfg.screenPreset}"]`); if (r) r.checked = true;
   $('shareModal').hidden = false; r?.focus();
@@ -556,6 +598,7 @@ function stopScreen(silent) {
 // ---------- câmera ----------
 async function toggleCamera() {
   if (S.cam) { stopCamera(); return; }
+  if (myVoice()?.stream === false) { toast('Você não tem permissão para transmitir nesta sala.'); return; }
   if (!navigator.mediaDevices?.getUserMedia) { toast('Este navegador não dá acesso à câmera.'); return; }
   const dev = cfg.camId;
   try {

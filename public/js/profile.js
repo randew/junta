@@ -35,6 +35,8 @@ function openCard(uid, anchor) {
   cardUid = uid; cardAnchor = anchor;
   const pc = $('pcard'); pc.replaceChildren();
   pc.append(buildCard(u, { serverName: currentServer()?.name, nick: S.nicks?.[uid]?.[S.serverId], avatarSrc: avatarUrl(u) }));
+  cardRoles(uid, pc.querySelector('.card-body'));
+  const rc = S.home ? null : roleColor(uid); if (rc) pc.querySelector('.card-name').style.color = rc;
   if (uid === S.me.uid) {
     const b = el('button', 'primary card-edit', 'Editar perfil'); b.type = 'button';
     b.onclick = () => { closeCard(); openProfileEditor(); };

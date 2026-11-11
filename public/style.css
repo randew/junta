@@ -611,3 +611,82 @@ mark { background: color-mix(in srgb, var(--amber) 45%, transparent); color: var
 .chan-group.sorting .chan-wrap.dragging > .chan * { visibility: hidden; }
 #serverList.sorting .rail-btn.dragging { opacity: 1; outline: 2px dashed var(--amber); outline-offset: 2px; background: transparent; color: transparent; }
 #serverList.sorting .rail-btn.dragging > * { visibility: hidden; }
+
+/* =====================================================================
+   v6: cargos e permissões
+   ===================================================================== */
+.chan .lock { font-size: 10px; opacity: .7; margin-left: 2px; flex: none; }
+.no-send { margin: 0 16px 16px; padding: 12px 16px; border-radius: 10px; background: var(--ink-3); color: var(--fg-dim); font-size: 13px; text-align: center; }
+.mention.all { background: color-mix(in srgb, var(--amber) 30%, transparent); color: color-mix(in srgb, var(--amber) 70%, var(--fg)); font-weight: 600; padding: 0 3px; border-radius: 4px; }
+.mp-all { width: 24px; height: 24px; font-size: 13px; background: var(--amber); color: var(--amber-ink); }
+.mod-tag { background: var(--amber); color: var(--amber-ink); }
+.mod-acts { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 6px; }
+.mod-acts .ghost-btn { padding: 5px 8px; font-size: 12px; }
+.ctrl:disabled { opacity: .45; cursor: not-allowed; }
+#joinVoiceBtn:disabled { opacity: .5; cursor: not-allowed; filter: grayscale(.6); }
+
+/* aba Cargos */
+.roles-layout { display: grid; grid-template-columns: 220px minmax(0, 1fr); gap: 20px; align-items: start; }
+.roles-side { display: flex; flex-direction: column; gap: 8px; position: sticky; top: 0; }
+.role-group { display: flex; flex-direction: column; gap: 2px; }
+.role-item { display: flex; align-items: center; gap: 8px; width: 100%; border: 0; background: none; color: var(--fg); font: inherit; text-align: left; padding: 7px 10px; border-radius: 6px; cursor: pointer; }
+.role-item:hover { background: var(--ink-3); }
+.role-item.on { background: var(--ink-4); }
+.role-item.locked .role-name { color: var(--fg-dim); }
+.role-item.everyone { margin-top: 6px; border-top: 1px solid var(--ink-3); border-radius: 0 0 6px 6px; padding-top: 10px; }
+.role-dot { width: 12px; height: 12px; border-radius: 50%; background: var(--fg-dim); flex: none; }
+.role-name { flex: 1; min-width: 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; font-weight: 500; }
+.role-count { color: var(--fg-dim); font: 11px var(--mono); }
+.role-group.sorting .role-item.dragging { opacity: 1; outline: 2px dashed var(--amber); outline-offset: -2px; }
+.role-group.sorting .role-item.dragging > * { visibility: hidden; }
+.role-editor { display: flex; flex-direction: column; gap: 12px; min-width: 0; }
+.role-warn { margin: 0; padding: 8px 12px; border-radius: 8px; background: color-mix(in srgb, var(--amber) 15%, var(--ink-3)); font-size: 13px; }
+.perm-group { margin-top: 8px; padding-bottom: 4px; border-bottom: 1px solid var(--ink-3); }
+.perm-row { display: flex; align-items: center; justify-content: space-between; gap: 16px; padding: 4px 0; cursor: pointer; }
+.perm-row span { display: flex; flex-direction: column; min-width: 0; }
+.perm-row small { color: var(--fg-dim); font-size: 12px; }
+.perm-row input { width: 36px; height: 20px; flex: none; appearance: none; -webkit-appearance: none; border-radius: 10px; background: var(--ink-4); position: relative; cursor: pointer; transition: background .15s; }
+.perm-row input::after { content: ""; position: absolute; top: 3px; left: 3px; width: 14px; height: 14px; border-radius: 50%; background: var(--fg); transition: transform .15s; }
+.perm-row input:checked { background: var(--live); }
+.perm-row input:checked::after { transform: translateX(16px); }
+.perm-row input:disabled { opacity: .4; cursor: not-allowed; }
+.perm-row.danger-perm input:checked { background: var(--danger); }
+.role-people { display: flex; flex-wrap: wrap; gap: 6px; }
+.role-person { display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 4px; border-radius: 16px; background: var(--ink-3); font-size: 13px; }
+.role-person .avatar { width: 22px; height: 22px; font-size: 9px; }
+.role-person .icon-btn { width: 22px; height: 22px; }
+.role-del { align-self: flex-start; margin-top: 8px; }
+@media (max-width: 700px) { .roles-layout { grid-template-columns: 1fr; } .roles-side { position: static; } }
+
+/* permissões por canal */
+.cp-head { display: flex; align-items: center; gap: 12px; }
+.cp-head .ghost { padding: 6px 8px; }
+#cpPresets .ghost-btn.on { border-color: var(--amber); color: var(--amber); }
+.cp-layout { display: grid; grid-template-columns: 200px minmax(0, 1fr); gap: 16px; align-items: start; }
+.cp-roles { display: flex; flex-direction: column; gap: 2px; }
+.cp-role { display: flex; align-items: center; gap: 8px; border: 0; background: none; color: var(--fg); font: inherit; text-align: left; padding: 7px 10px; border-radius: 6px; cursor: pointer; }
+.cp-role:hover { background: var(--ink-3); }
+.cp-role.on { background: var(--ink-4); }
+.cp-mark { color: var(--amber); margin-left: auto; }
+.cp-list { display: flex; flex-direction: column; gap: 6px; }
+.cp-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; padding: 6px 0; border-bottom: 1px solid var(--ink-3); }
+.tri { display: inline-flex; border: 1px solid var(--ink-4); border-radius: 8px; overflow: hidden; flex: none; }
+.tri button { width: 34px; height: 30px; border: 0; background: var(--ink-0); color: var(--fg-dim); font: 600 14px/1 var(--body); cursor: pointer; }
+.tri button + button { border-left: 1px solid var(--ink-4); }
+.tri .tri-deny.on { background: var(--danger); color: #fff; }
+.tri .tri-inherit.on { background: var(--ink-4); color: var(--fg); }
+.tri .tri-allow.on { background: var(--live); color: var(--ink-0); }
+.tri button:disabled { cursor: not-allowed; opacity: .5; }
+.icon-btn.on-lock { color: var(--amber); }
+@media (max-width: 700px) { .cp-layout { grid-template-columns: 1fr; } .cp-roles { flex-direction: row; flex-wrap: wrap; } }
+
+/* cargos no cartão de perfil */
+.card-roles { display: flex; flex-direction: column; gap: 6px; margin-top: 4px; }
+.card-role-list { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; }
+.card-role { display: inline-flex; align-items: center; gap: 6px; padding: 3px 4px 3px 8px; border-radius: 6px; background: var(--ink-3); font-size: 12px; }
+.card-role .role-dot { width: 10px; height: 10px; }
+.card-role .icon-btn { width: 20px; height: 20px; font-size: 14px; }
+.card-role:not(:has(.icon-btn)) { padding-right: 8px; }
+.card-role-add { background: var(--ink-0); border: 1px dashed var(--ink-4); color: var(--fg-dim); border-radius: 6px; padding: 3px 6px; font: inherit; font-size: 12px; cursor: pointer; }
+#roleAddMember { background: var(--ink-0); border: 1px solid var(--ink-4); color: var(--fg); border-radius: 8px; padding: 9px 10px; font: inherit; width: 100%; }
+.admin-modal:has(#ssRoles:not([hidden])) { width: min(820px, 100%); }

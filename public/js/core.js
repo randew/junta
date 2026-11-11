@@ -14,6 +14,7 @@ const S = {
   serverId: null, channelId: null,
   home: false, dmKey: null, dms: [],        // tela inicial: conversas diretas
   unread: {},                               // canal -> { n: não lidas, m: menções }
+  roles: {}, memberRoles: {},               // cargos por servidor e quem tem cada um
   messages: [], more: false, loadingOlder: false,
   atLatest: true, loadingNewer: false, lastRead: 0, replyTo: null,
   // voz
@@ -57,6 +58,26 @@ function curKey() {
   const c = currentChannel();
   return c?.type === 'text' ? keyOf(S.serverId, c.id) : null;
 }
+// ---------- permissões (as mesmas do servidor, em lib/perms.js) ----------
+const P = {
+  VIEW: 1 << 0, SEND: 1 << 1, ATTACH: 1 << 2, REACT: 1 << 3, MENTION_ALL: 1 << 4, MANAGE_MESSAGES: 1 << 5,
+  CONNECT: 1 << 6, SPEAK: 1 << 7, STREAM: 1 << 8, MUTE_MEMBERS: 1 << 9, MOVE_MEMBERS: 1 << 10,
+  MANAGE_CHANNELS: 1 << 11, MANAGE_ROLES: 1 << 12, MANAGE_SERVER: 1 << 13, INVITE: 1 << 14, ADMIN: 1 << 15,
+};
+const has = (bits, bit) => (bits & bit) === bit;
+// no servidor: o que eu posso (o servidor manda isso já calculado)
+const canSrv = (bit, sid = S.serverId) => has(S.servers.find((s) => s.id === sid)?.perms ?? 0, bit);
+// no canal aberto (nas conversas diretas, pode tudo de texto)
+const canHere = (bit) => S.home || has(currentChannel()?.perms ?? 0, bit);
+const canChan = (key, bit) => { if (isDmKey(key)) return true; const [sid, cid] = key.split('/'); return has(S.servers.find((s) => s.id === sid)?.channels.find((c) => c.id === cid)?.perms ?? 0, bit); };
+const rolesIn = (sid = S.serverId) => S.roles[sid] || [];
+const rolesOfUser = (uid, sid = S.serverId) => { const ids = S.memberRoles[sid]?.[uid] || []; return rolesIn(sid).filter((r) => ids.includes(r.id)); };
+// cor do nome: a do cargo mais alto que tem cor
+const roleColor = (uid, sid = S.serverId) => (sid ? rolesOfUser(uid, sid).find((r) => r.color)?.color : null) || null;
+// posição do meu cargo mais alto (o dono do Junta fica acima de todos)
+const myTop = (sid = S.serverId) => (S.me.role === 'owner' ? Infinity : Math.max(0, ...rolesOfUser(S.me.uid, sid).map((r) => r.pos)));
+const topOf = (uid, sid = S.serverId) => (S.users.get(uid)?.role === 'owner' ? Infinity : Math.max(0, ...rolesOfUser(uid, sid).map((r) => r.pos)));
+
 // emit com resposta em forma de Promise
 const emitP = (ev, data) => new Promise((res, rej) => socket.emit(ev, data, (r) => (r?.error ? rej(new Error(r.error)) : res(r))));
 async function api(method, url, body) {
