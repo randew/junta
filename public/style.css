@@ -322,7 +322,8 @@ kbd { padding: 3px 6px; font-size: 11px; margin-left: 4px; }
 .msg.editing { background: color-mix(in srgb, var(--amber) 6%, transparent); }
 .msg-actions { position: absolute; right: 16px; top: -14px; display: none; gap: 2px; background: var(--ink-2); border: 1px solid var(--ink-4); border-radius: 8px; padding: 2px; z-index: 1; }
 .msg:hover .msg-actions, .msg:focus-within .msg-actions { display: flex; }
-@media (hover: none) { .msg-actions { position: static; display: flex; grid-column: 2; justify-self: start; margin-top: 4px; } }
+/* telas de toque: os botões ficam escondidos; segurar a mensagem abre o menu de ações (msgsheet.js) */
+@media (hover: none) { .msg-actions, .msg:hover .msg-actions, .msg:focus-within .msg-actions { display: none; } }
 .edited { color: var(--fg-dim); font-size: 11px; }
 .edit-box { width: 100%; resize: none; background: var(--ink-0); border: 1px solid var(--ink-4); color: var(--fg); font: inherit; padding: 8px 10px; border-radius: 8px; outline: none; }
 .edit-box:focus { border-color: var(--amber); }
@@ -907,3 +908,25 @@ html { -webkit-text-size-adjust: 100%; text-size-adjust: 100%; }
 @media (prefers-reduced-motion: reduce) { .rail-dm.pop { animation: none; } }
 #menuBtn { position: relative; }
 #menuBtn.has-unread::after { content: ""; position: absolute; top: 4px; right: 4px; width: 10px; height: 10px; border-radius: 50%; background: var(--danger); border: 2px solid var(--ink-2); }
+
+/* menu de ações da mensagem no celular (segurar a mensagem) */
+@media (hover: none) {
+  .messages .msg, .thread-msgs .msg { -webkit-touch-callout: none; -webkit-user-select: none; user-select: none; }
+  .msg.pressed { background: var(--ink-3); transition: background .15s; }
+}
+.sheet-back { position: fixed; inset: 0; z-index: 70; background: rgb(0 0 0 / .5); display: flex; align-items: flex-end; justify-content: center; }
+.msg-sheet { width: min(520px, 100%); background: var(--ink-1); border-radius: 16px 16px 0 0; padding: 8px 12px calc(12px + env(safe-area-inset-bottom, 0px)); display: grid; gap: 6px; max-height: 80vh; overflow-y: auto; animation: sheetUp .2s ease-out; }
+.msg-sheet::before { content: ""; justify-self: center; width: 40px; height: 4px; border-radius: 2px; background: var(--ink-4); margin-bottom: 4px; }
+@keyframes sheetUp { from { transform: translateY(40px); opacity: .4; } to { transform: none; opacity: 1; } }
+@media (prefers-reduced-motion: reduce) { .msg-sheet { animation: none; } }
+.ms-preview { font-size: 13px; color: var(--fg-dim); padding: 2px 4px 6px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.ms-preview strong { color: var(--fg); font-weight: 600; }
+.ms-reacts { display: flex; gap: 6px; justify-content: space-between; padding-bottom: 4px; }
+.ms-reacts button { flex: 1; height: 48px; border: 0; border-radius: 12px; background: var(--ink-3); font-size: 22px; display: grid; place-items: center; }
+.ms-reacts button .cemoji { width: 26px; height: 26px; }
+.ms-group { display: grid; background: var(--ink-2); border-radius: 12px; overflow: hidden; }
+.ms-item { display: flex; align-items: center; gap: 14px; min-height: 50px; padding: 0 16px; border: 0; background: none; color: var(--fg); font: 500 16px var(--body); text-align: left; }
+.ms-item + .ms-item { border-top: 1px solid var(--ink-3); }
+.ms-item svg { width: 20px; height: 20px; color: var(--fg-dim); flex: none; }
+.ms-item.danger, .ms-item.danger svg { color: var(--danger); }
+.ms-item:active { background: var(--ink-3); }
