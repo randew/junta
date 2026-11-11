@@ -442,5 +442,5 @@ server.listen(PORT, () => {
   const owner = db.prepare("SELECT 1 FROM users WHERE role = 'owner'").get();
   console.log(owner
     ? `Código de convite para novos amigos: ${inviteCode()}`
-    : `Primeira vez: abra o endereço acima e crie a sua conta com o código ${inviteCode()}. A primeira conta vira a dona do Junta.`);
+    : `Primeira vez: abra o endereço acima e crie a sua conta com o código ${inviteCode()}. Quem criar a primeira conta vira o dono do Junta.`);
 });

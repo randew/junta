@@ -23,9 +23,9 @@ Se a pasta tiver sido baixada com `git clone`, os atalhos baixam a versão mais 
 
 ## Contas e convites
 
-- Na primeira vez que o servidor liga, o terminal mostra um **código de convite**. Abra o Junta, clique em **Criar conta** e use esse código. **A primeira conta criada vira a dona do Junta.**
+- Na primeira vez que o servidor liga, o terminal mostra um **código de convite**. Abra o Junta, clique em **Criar conta** e use esse código. **Quem criar a primeira conta vira o dono do Junta.**
 - Para chamar amigos: clique no seu nome (canto inferior esquerdo) → **Convidar amigos** → **Copiar convite**. O código é pedido só na criação da conta. **Gerar código novo** invalida o anterior, útil se ele vazou.
-- Só a dona cria e apaga servidores e canais, e pode apagar qualquer mensagem. Cada pessoa edita e apaga as próprias mensagens (passe o mouse sobre a mensagem, ou aperte **↑** com a caixa de texto vazia para editar a última).
+- Só o dono cria e apaga servidores e canais, e pode apagar qualquer mensagem. Cada pessoa edita e apaga as próprias mensagens (passe o mouse sobre a mensagem, ou aperte **↑** com a caixa de texto vazia para editar a última).
 - O login fica salvo por 60 dias. **Sair da conta** fica no mesmo menu do seu nome.
 - O lápis ao lado do seu nome troca o **nome de exibição**; o usuário de login não muda.
 
@@ -85,6 +85,6 @@ Clique no seu nome, no canto inferior esquerdo, para escolher Online, Ausente ou
 
 - **Rede:** só usa STUN do Google. Em redes corporativas ou 4G com NAT restritivo a conexão de voz/tela pode falhar; nesse caso adicione um servidor TURN (ex.: coturn ou Metered) em `ICE` no topo de `public/app.js`.
 - **Tamanho da sala:** a malha funciona bem até umas 5–6 pessoas. Para mais gente, troque por um SFU (LiveKit, mediasoup).
-- **Esqueceu a senha:** ainda não há recuperação por e-mail. A dona pode apagar a conta direto no banco, e a pessoa cria outra.
+- **Esqueceu a senha:** ainda não há recuperação por e-mail. O dono pode apagar a conta direto no banco, e a pessoa cria outra.
 - **Render (plano grátis):** o disco é apagado a cada atualização, então mensagens e anexos se perderiam lá. Para hospedar fora do seu PC, seria preciso um banco e um armazenamento de arquivos externos.
 - Compartilhar tela pelo celular não é suportado pela maioria dos navegadores; assistir funciona.
