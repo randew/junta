@@ -3,6 +3,7 @@
 
 // ---------- render: servidores e canais ----------
 function renderRail() {
+  if (dragLock) return; // redesenha quando o arraste terminar
   // início (conversas diretas)
   const home = $('homeBtn'); home.classList.toggle('active', S.home);
   home.querySelector('.badge')?.remove();
@@ -12,16 +13,29 @@ function renderRail() {
     const u = unreadIn(s.id);
     const b = el('button', 'rail-btn' + (!S.home && s.id === S.serverId ? ' active' : '') + (u.n ? ' unread' : '') + (s.icon ? ' has-ico' : ''));
     b.append(serverIcon(s));
-    b.title = s.name; b.setAttribute('aria-label', s.name + (u.m ? `, ${u.m} menções` : u.n ? ', mensagens novas' : ''));
+    b.title = s.name; b.dataset.id = s.id; b.setAttribute('aria-label', s.name + (u.m ? `, ${u.m} menções` : u.n ? ', mensagens novas' : ''));
     const hasVoice = s.channels.some((c) => S.voice[keyOf(s.id, c.id)]?.length);
     if (hasVoice) b.append(el('span', 'vbadge'));
     if (u.m) b.append(badge(u.m));
     b.onclick = () => selectServer(s.id);
     list.append(b);
   }
+  list.classList.toggle('can-sort', isOwner());
 }
+// dono: arrastar servidores na barra
+makeSortable($('serverList'), {
+  selector: '.rail-btn', enabled: () => isOwner(),
+  onDrop(order, before) {
+    S.servers.sort((a, b) => order.indexOf(a.id) - order.indexOf(b.id)); // mostra já, sem esperar o servidor
+    emitP('server-reorder', { order }).catch((x) => {
+      toast(x.message);
+      S.servers.sort((a, b) => before.indexOf(a.id) - before.indexOf(b.id)); renderRail();
+    });
+  },
+});
 
 function renderChannels() {
+  if (dragLock) return; // redesenha quando o arraste terminar
   const box = $('channelList'); box.replaceChildren();
   renderVoiceBar();
   if (S.home) { $('serverMenuBtn').hidden = true; renderDmList(box); return; }
@@ -35,8 +49,20 @@ function renderChannels() {
       add.onclick = () => createChannel(type); cat.append(add);
     }
     box.append(cat);
+    // cada tipo num grupo próprio: dá para arrastar dentro dele
+    const group = el('div', 'chan-group' + (isOwner() ? ' can-sort' : '')); group.dataset.type = type; box.append(group);
+    makeSortable(group, {
+      selector: '.chan-wrap', enabled: () => isOwner(),
+      onDrop(order, before) {
+        const sid = s.id;
+        const rest = s.channels.filter((c) => c.type !== type);
+        const mine = order.map((id) => s.channels.find((c) => c.id === id));
+        s.channels = type === 'text' ? [...mine, ...rest] : [...rest, ...mine];
+        emitP('channel-reorder', { serverId: sid, type, order }).catch((x) => { toast(x.message); });
+      },
+    });
     for (const c of s.channels.filter((c) => c.type === type)) {
-      const wrap = el('div', 'chan-wrap');
+      const wrap = el('div', 'chan-wrap'); wrap.dataset.id = c.id;
       const un = S.unread[keyOf(s.id, c.id)];
       const b = el('button', 'chan' + (c.id === S.channelId ? ' active' : '') + (un ? ' unread' : ''));
       b.append(el('span', 'glyph', type === 'text' ? '#' : '◖'), el('span', 'label', c.name));
@@ -47,7 +73,7 @@ function renderChannels() {
         const del = el('button', 'chan-del', '×'); del.title = 'Apagar canal'; del.setAttribute('aria-label', `Apagar canal ${c.name}`);
         del.onclick = () => deleteChannel(c); wrap.append(del);
       }
-      box.append(wrap);
+      group.append(wrap);
       const members = S.voice[keyOf(s.id, c.id)] || [];
       if (type === 'voice' && members.length) {
         const ml = el('div', 'chan-members');
@@ -57,7 +83,7 @@ function renderChannels() {
           if (m.muted) row.append(el('span', 'muted-ic', '✕'));
           ml.append(row);
         }
-        box.append(ml);
+        wrap.append(ml); // dentro do bloco do canal: vai junto ao arrastar
       }
     }
   }

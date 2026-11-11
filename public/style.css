@@ -589,3 +589,16 @@ mark { background: color-mix(in srgb, var(--amber) 45%, transparent); color: var
 .ss-chan .icon-btn:disabled { opacity: .3; cursor: default; }
 .ss-add { align-self: flex-start; margin-top: 8px; padding: 6px 10px; font-size: 13px; }
 #ssChannelList { display: flex; flex-direction: column; }
+
+/* ---------- arrastar para reordenar ---------- */
+.chan-del { top: 17px; }
+.can-sort > .rail-btn, .can-sort > .chan-wrap > .chan { touch-action: pan-y; }
+.sorting, .sorting * { cursor: grabbing !important; user-select: none; -webkit-user-select: none; }
+.dragging { opacity: .25; }
+.drag-ghost { position: fixed; left: 0; top: 0; z-index: 100; pointer-events: none; opacity: .92; box-shadow: 0 12px 32px rgb(0 0 0 / .5); border-radius: 8px; background: var(--ink-3); transition: none; }
+.drag-ghost.rail-btn { border-radius: 14px; }
+.chan-group.sorting .chan-wrap.dragging { opacity: 1; }
+.chan-group.sorting .chan-wrap.dragging > .chan { outline: 2px dashed var(--amber); outline-offset: -2px; color: transparent; }
+.chan-group.sorting .chan-wrap.dragging > .chan * { visibility: hidden; }
+#serverList.sorting .rail-btn.dragging { opacity: 1; outline: 2px dashed var(--amber); outline-offset: 2px; background: transparent; color: transparent; }
+#serverList.sorting .rail-btn.dragging > * { visibility: hidden; }

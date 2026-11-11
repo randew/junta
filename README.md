@@ -44,6 +44,7 @@ O navegador só libera microfone, câmera e captura de tela em **HTTPS** (ou em 
 - **Configurações do servidor** (dono): a engrenagem ao lado do nome do servidor, no topo da lista de canais.
   - **Geral:** nome, ícone (o centro da imagem é recortado em quadrado), posição na barra e **excluir servidor**, que pede para digitar o nome do servidor e apaga canais, mensagens e anexos.
   - **Canais:** renomear direto no campo, mudar a ordem com as setas, criar e apagar. Renomear não mexe nas mensagens.
+- **Arrastar para reordenar** (dono): arraste os servidores na barra da esquerda ou os canais na lista (cada canal fica no seu grupo, de texto ou de voz). No celular, segure um instante antes de arrastar. **Esc** cancela. As setas nas configurações fazem o mesmo pelo teclado.
 
 ## Mensagens
 

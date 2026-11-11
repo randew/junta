@@ -204,3 +204,21 @@ test('gerenciar servidores e canais (só o dono)', async () => {
   assert.equal((await bia.emit('search', { q: 'sumir', scope: made.id })).results.length, 0);
   assert.match((await bia.emit('join-text', key)).error, /acesso/);
 });
+
+test('reordenar arrastando: ordem completa, só o dono, só itens válidos', async () => {
+  await andre.emit('create-server', 'Extra');
+  const ids = (await andre.emit('hello', {})).servers.map((s) => s.id);
+  const rev = [...ids].reverse();
+  assert.match((await bia.emit('server-reorder', { order: rev })).error, /dono/);
+  assert.match((await andre.emit('server-reorder', { order: rev.slice(1) })).error, /mudou/, 'faltando um servidor');
+  assert.match((await andre.emit('server-reorder', { order: [...rev.slice(1), 'inventado'] })).error, /mudou/);
+  assert.equal((await andre.emit('server-reorder', { order: rev })).ok, true);
+  assert.deepEqual((await bia.emit('hello', {})).servers.map((s) => s.id), rev);
+  const text = (await bia.emit('hello', {})).servers.find((s) => s.id === 'geral').channels.filter((c) => c.type === 'text').map((c) => c.id);
+  const newOrder = [...text].reverse();
+  assert.equal((await andre.emit('channel-reorder', { serverId: 'geral', type: 'text', order: newOrder })).ok, true);
+  const after = (await bia.emit('hello', {})).servers.find((s) => s.id === 'geral').channels;
+  assert.deepEqual(after.filter((c) => c.type === 'text').map((c) => c.id), newOrder);
+  assert.ok(after.findIndex((c) => c.type === 'voice') > after.findLastIndex((c) => c.type === 'text'), 'voz continua depois do texto');
+  assert.match((await andre.emit('channel-reorder', { serverId: 'geral', type: 'text', order: ['sala-1', ...newOrder.slice(1)] })).error, /mudou/, 'não mistura tipos');
+});
