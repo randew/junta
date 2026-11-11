@@ -333,3 +333,44 @@ test('voz: entrar, transmitir e moderar conforme os cargos', async () => {
   const v = await caio.waitFor('voice-state', () => true);
   assert.equal(v['geral/sala-1'], undefined);
 });
+
+test('TURN: credenciais da Cloudflare, sem a porta 53, e STUN quando não há chave', async () => {
+  const os = require('os'); const path = require('path');
+  const { createTurn } = require('../lib/turn');
+  // sem configuração: só STUN, pela rota do Junta
+  const { data: ice } = await andre.api('GET', '/api/ice');
+  assert.equal(ice.turn, false);
+  assert.ok(ice.iceServers[0].urls.some((u) => u.startsWith('stun:')));
+  // "Cloudflare" de mentira
+  let calls = 0, auth = null;
+  const fake = http.createServer((req, res) => {
+    calls++; auth = req.headers.authorization;
+    if (!req.url.endsWith('/chave1/credentials/generate-ice-servers')) { res.writeHead(404); return res.end(); }
+    res.writeHead(201, { 'Content-Type': 'application/json' });
+    res.end(JSON.stringify({ iceServers: [
+      { urls: ['stun:stun.cloudflare.com:3478', 'stun:stun.cloudflare.com:53'] },
+      { urls: ['turn:turn.cloudflare.com:3478?transport=udp', 'turn:turn.cloudflare.com:53?transport=udp', 'turns:turn.cloudflare.com:443?transport=tcp'], username: 'u', credential: 'c' },
+    ] }));
+  });
+  await new Promise((r) => fake.listen(0, r));
+  process.env.JUNTA_TURN_API = `http://127.0.0.1:${fake.address().port}/keys`;
+  const dir = fs.mkdtempSync(path.join(os.tmpdir(), 'junta-turn-'));
+  try {
+    fs.writeFileSync(path.join(dir, 'turn.json'), JSON.stringify({ keyId: 'chave1', token: 'segredo' }));
+    const t = createTurn(dir, () => {});
+    const c = await t.get();
+    assert.equal(c.turn, true);
+    assert.equal(auth, 'Bearer segredo');
+    const urls = c.iceServers.flatMap((s) => s.urls);
+    assert.ok(urls.includes('turns:turn.cloudflare.com:443?transport=tcp'));
+    assert.ok(!urls.some((u) => /:53(\?|$)/.test(u)), 'porta 53 removida');
+    await t.get(); assert.equal(calls, 1, 'credenciais ficam em cache');
+    // chave errada: cai para só STUN, sem quebrar
+    fs.writeFileSync(path.join(dir, 'turn.json'), JSON.stringify({ keyId: 'outra', token: 'x' }));
+    await sleep(20);
+    const bad = await createTurn(dir, () => {}).get();
+    assert.equal(bad.turn, false);
+  } finally {
+    delete process.env.JUNTA_TURN_API; fake.close(); fs.rmSync(dir, { recursive: true, force: true });
+  }
+});

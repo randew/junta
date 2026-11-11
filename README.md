@@ -20,6 +20,7 @@ Abra http://localhost:3000. Para testar sozinho, abra uma segunda aba (ou outro 
 - **`configurar-dominio.bat`**: liga um domínio seu ao Junta deste PC (veja "Usar com amigos").
 - **`iniciar.command`** e **`iniciar-com-amigos.command`**: os mesmos atalhos para Mac (ou Linux). Na primeira vez no Mac, use botão direito → **Abrir**.
 - **`configurar-dominio.command`**: a versão Mac do `configurar-dominio.bat`.
+- **`configurar-turn.bat`** / **`configurar-turn.command`**: liga o TURN da Cloudflare (veja "Usar com amigos").
 
 Abra só um deles por vez. Se a pasta tiver sido baixada com `git clone`, os atalhos baixam a versão mais nova (`git pull`) antes de iniciar.
 
@@ -38,6 +39,19 @@ O navegador só libera microfone, câmera e captura de tela em **HTTPS** (ou em 
    3. Daí em diante o **`iniciar-com-amigos.bat`** usa o domínio em vez do link aleatório. Sem `tunel.yml`, ele volta ao túnel rápido.
    - Rode o túnel em **um computador só** por vez: o túnel fica ligado ao PC onde foi criado (a credencial fica em `%USERPROFILE%\.cloudflared`).
    - Ao migrar para uma VPS, troque no DNS da Cloudflare o registro do túnel por um registro **A** com o IP da VPS.
+### TURN (para quem não conecta na voz)
+
+Algumas redes (4G de certas operadoras, redes de empresa) não deixam a conexão direta da voz acontecer, e a pessoa entra na sala sem ouvir ninguém. O **TURN** é um servidor que repassa o áudio e o vídeo só dessas pessoas; o resto continua direto.
+
+1. No painel da Cloudflare: **Realtime** (ou **Calls**) → **TURN Server** → **Create**. Guarde o **Turn Token ID** e o **API Token**.
+2. Dê dois cliques em **`configurar-turn.bat`** (Mac: `configurar-turn.command`) e cole os dois valores. Ele testa na hora e salva em `dados/turn.json` (não vai para o GitHub).
+3. Pronto: vale para quem entrar numa sala a partir de agora, sem reiniciar o Junta.
+
+- Em **Voz e áudio** (engrenagem da sala), a seção **Conexão** mostra se o TURN está ativo e, para cada pessoa, se a conexão está **direta** ou **via TURN**.
+- A chave fica só no servidor; o navegador recebe credenciais que valem 24 h e são renovadas sozinhas.
+- Custo na Cloudflare: os primeiros 1.000 GB por mês são grátis.
+- Para desligar: `node scripts/configurar-turn.js --remover`. Para usar um TURN próprio (ex.: coturn numa VPS), escreva em `dados/turn.json`: `{ "iceServers": [{ "urls": ["turn:seu.servidor:3478"], "username": "...", "credential": "..." }] }`.
+
 3. **Deploy** em Render, Railway ou Fly.io: é um app Node comum, comando de start `npm start`, porta lida de `PORT`. Veja os limites no fim.
 
 ## Layout
@@ -153,7 +167,7 @@ test/                testes automáticos
 
 ## Limites conhecidos
 
-- **Rede:** só usa STUN do Google. Em redes corporativas ou 4G com NAT restritivo a voz, a câmera e a tela podem não conectar; nesse caso adicione um servidor TURN (ex.: Metered) em `ICE`, no topo de `public/js/core.js`.
+- **Rede:** sem TURN configurado, só há conexão direta. Em redes corporativas ou 4G com NAT restritivo, a voz, a câmera e a tela podem não conectar; configure o TURN (veja "Usar com amigos").
 - **Tamanho da sala:** cada pessoa conecta direto com cada outra; funciona bem até umas 5–6 pessoas. Para mais gente, seria preciso um servidor de mídia (SFU).
 - **Notificações** só aparecem com o Junta aberto em alguma aba (mesmo em segundo plano).
 - **Render (plano grátis):** o disco é apagado a cada atualização, então mensagens e anexos se perderiam lá. Para hospedar fora do seu PC, seria preciso um banco e um armazenamento de arquivos externos.

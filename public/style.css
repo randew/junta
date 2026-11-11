@@ -737,3 +737,13 @@ body.resizing video, body.resizing iframe { pointer-events: none; }
   .views.split .voice-view { flex: 1 1 55%; }
   .views.split .text-view { width: auto; flex: 1 1 45%; border-left: 0; border-top: 1px solid var(--ink-0); }
 }
+
+/* conexão da voz (direta / TURN) nas configurações de áudio */
+.conn-turn { margin: 4px 0 6px; font-size: 13px; color: var(--fg-dim); }
+.conn-turn.ok { color: var(--live); }
+.conn-list { list-style: none; margin: 0; padding: 0; display: grid; gap: 4px; }
+.conn-row { display: flex; justify-content: space-between; gap: 8px; font-size: 13px; padding: 6px 10px; border-radius: 6px; background: var(--ink-2); }
+.conn-tag { color: var(--fg-dim); }
+.conn-row.direct .conn-tag { color: var(--live); }
+.conn-row.turn .conn-tag { color: var(--amber); }
+.conn-row.bad .conn-tag { color: var(--danger); }

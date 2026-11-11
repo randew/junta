@@ -9,7 +9,7 @@ const http = require('http');
 const path = require('path');
 const { Server } = require('socket.io');
 
-const { db, inviteCode } = require('./lib/db');
+const { db, inviteCode, DATA_DIR } = require('./lib/db');
 const { reply } = require('./lib/util');
 const accounts = require('./lib/accounts');
 const files = require('./lib/files');
@@ -18,6 +18,7 @@ const messages = require('./lib/messages');
 const servers = require('./lib/servers');
 const voice = require('./lib/voice');
 const roles = require('./lib/roles');
+const { createTurn } = require('./lib/turn');
 const { createRealtime } = require('./lib/realtime');
 const { serverList, dmList } = require('./lib/channels');
 
@@ -42,6 +43,13 @@ function start({ port = process.env.PORT || 3000, backups = true, log = console.
   accounts.routes(app, ctx);
   files.routes(app, ctx);
   admin.routes(app, ctx);
+
+  // servidores de conexão da voz: STUN, e TURN quando configurado (veja lib/turn.js)
+  const turn = createTurn(DATA_DIR, log);
+  app.get('/api/ice', accounts.auth, async (req, res) => {
+    const { iceServers, turn: on } = await turn.get();
+    res.set('Cache-Control', 'no-store').json({ iceServers, turn: on });
+  });
 
   // ---------- conexão em tempo real (só com login) ----------
   io.use((socket, next) => {
@@ -101,6 +109,7 @@ function start({ port = process.env.PORT || 3000, backups = true, log = console.
       log(owner
         ? `Código de convite para novos amigos: ${inviteCode()}`
         : `Primeira vez: abra o endereço acima e crie a sua conta com o código ${inviteCode()}. Quem criar a primeira conta vira o dono do Junta.`);
+      if (turn.status().configured) turn.get().then((c) => c.turn && log('TURN ativo: quem não conseguir conexão direta na voz passa pelo servidor TURN.'));
       resolve({ server, io, ctx, port: actual, close: () => new Promise((r) => { io.close(); server.close(() => r()); }) });
     });
   });

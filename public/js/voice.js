@@ -414,6 +414,7 @@ async function joinVoice(key) {
   S.muted = !A.raw; applyMute();
   refreshDevices();
   watchSpeaking(S.me.id, A.out);
+  await Promise.race([loadIce(), new Promise((r) => setTimeout(r, 3000))]); // credenciais do TURN, sem segurar a entrada
   socket.emit('voice-join', key, (peerIds) => {
     S.voiceKey = key;
     roomBaseline = null; // a primeira lista da sala só marca quem já estava lá
@@ -554,8 +555,46 @@ async function reopenIfLive() {
   try { await openMic(); } catch { toast('Não foi possível abrir esse microfone.'); }
 }
 
-$('settingsBtn').onclick = () => { syncSettingsUI(); refreshDevices(); $('settings').hidden = false; $('settingsClose').focus(); };
+$('settingsBtn').onclick = () => { syncSettingsUI(); refreshDevices(); $('settings').hidden = false; $('settingsClose').focus(); renderConnInfo(); };
 $('settingsClose').onclick = () => { $('settings').hidden = true; capturingKey = false; };
+
+// ---------- tipo de conexão com cada pessoa (direta ou pelo TURN) ----------
+async function connType(p) {
+  try {
+    const stats = await p.pc.getStats();
+    let pair = null;
+    stats.forEach((r) => { if (r.type === 'transport' && r.selectedCandidatePairId) pair = stats.get(r.selectedCandidatePairId); });
+    if (!pair) stats.forEach((r) => { if (r.type === 'candidate-pair' && r.nominated && r.state === 'succeeded') pair = r; });
+    if (!pair) return null;
+    const l = stats.get(pair.localCandidateId), r = stats.get(pair.remoteCandidateId);
+    return l?.candidateType === 'relay' || r?.candidateType === 'relay' ? 'turn' : 'direct';
+  } catch { return null; }
+}
+async function renderConnInfo() {
+  const box = $('connInfo'); if (!box || $('settings').hidden) return;
+  const list = $('connList');
+  $('connTurn').textContent = iceTurn ? 'TURN ativo: quem não conseguir conexão direta passa pelo servidor TURN.' : 'TURN desligado: só conexões diretas. Quem estiver em 4G ou rede de empresa pode não ouvir a sala.';
+  $('connTurn').classList.toggle('ok', iceTurn);
+  const others = S.voiceKey ? (S.voice[S.voiceKey] || []).filter((m) => m.id !== S.me.id) : [];
+  const rows = await Promise.all(others.map(async (m) => {
+    const p = S.peers[m.id]; const st = p?.pc.connectionState;
+    const t = st === 'connected' ? await connType(p) : null;
+    const label = st === 'failed' ? 'sem conexão' : t === 'turn' ? 'via TURN' : t === 'direct' ? 'direta' : 'conectando…';
+    const row = el('li', 'conn-row ' + (st === 'failed' ? 'bad' : t || 'wait'));
+    row.append(el('span', null, m.name), el('span', 'conn-tag', label));
+    return row;
+  }));
+  list.replaceChildren(...rows);
+  list.hidden = !rows.length;
+  $('connEmpty').hidden = !!rows.length;
+}
+setInterval(renderConnInfo, 2000);
+// credenciais do TURN vencem: renova as de quem está numa sala
+setInterval(async () => {
+  if (!S.voiceKey) return;
+  await loadIce(true);
+  for (const p of Object.values(S.peers)) { try { p.pc.setConfiguration({ ...p.pc.getConfiguration(), iceServers: ICE.iceServers }); } catch {} }
+}, 6 * 3600_000);
 $('settings').addEventListener('click', (e) => { if (e.target === $('settings')) $('settingsClose').click(); });
 $('settings').addEventListener('keydown', (e) => { if (e.key === 'Escape' && !capturingKey) $('settingsClose').click(); });
 

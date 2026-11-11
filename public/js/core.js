@@ -4,7 +4,16 @@
 const $ = (id) => document.getElementById(id);
 const socket = io({ autoConnect: false }); // conecta só depois do login
 
-const ICE = { iceServers: [{ urls: ['stun:stun.l.google.com:19302', 'stun:stun1.l.google.com:19302'] }] };
+// servidores de conexão da voz; o servidor do Junta manda a lista atual (com TURN, se configurado)
+const ICE = { iceServers: [{ urls: ['stun:stun.cloudflare.com:3478', 'stun:stun.l.google.com:19302'] }] };
+let iceTurn = false, iceAt = 0;
+async function loadIce(force) {
+  if (!force && Date.now() - iceAt < 3 * 3600_000) return;
+  try {
+    const d = await api('GET', '/api/ice');
+    if (Array.isArray(d.iceServers) && d.iceServers.length) { ICE.iceServers = d.iceServers; iceTurn = !!d.turn; iceAt = Date.now(); }
+  } catch { /* segue com o que já tem */ }
+}
 const PALETTE = ['#f0a43a', '#46c28a', '#6cb4ee', '#e88aa8', '#b49cf0', '#e5c15a', '#5fcfc3', '#ef8a5b'];
 
 const S = {
