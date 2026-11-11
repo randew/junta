@@ -1,0 +1,202 @@
+<!doctype html>
+<html lang="pt-BR">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Junta</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Bricolage+Grotesque:opsz,wght@12..96,500;12..96,700&family=Inter:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap">
+<link rel="stylesheet" href="style.css">
+</head>
+<body>
+<div class="app" id="app">
+  <!-- Trilho de servidores -->
+  <nav class="rail" aria-label="Servidores">
+    <div class="rail-logo" title="Junta">J</div>
+    <div class="rail-sep"></div>
+    <div id="serverList" class="rail-list"></div>
+    <button class="rail-btn add" id="addServerBtn" title="Criar servidor" aria-label="Criar servidor">+</button>
+  </nav>
+
+  <!-- Canais -->
+  <aside class="sidebar" id="sidebar">
+    <header class="sidebar-head"><h1 id="serverName">—</h1></header>
+    <div class="channels" id="channelList"></div>
+
+    <div class="voice-bar" id="voiceBar" hidden>
+      <div class="voice-bar-info">
+        <span class="dot live"></span>
+        <div>
+          <strong>Voz conectada</strong>
+          <small id="voiceBarRoom"></small>
+        </div>
+      </div>
+      <button class="icon-btn danger" id="voiceBarLeave" title="Desconectar" aria-label="Desconectar da voz">
+        <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85a1 1 0 0 1-1.41-.02L.29 13.08a1 1 0 0 1 0-1.41C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67a1 1 0 0 1 0 1.41l-2.48 2.47a1 1 0 0 1-1.41.02 11.3 11.3 0 0 0-2.67-1.85 1 1 0 0 1-.56-.9v-3.1A15 15 0 0 0 12 9z"/></svg>
+      </button>
+    </div>
+
+    <footer class="me">
+      <button class="me-status" id="statusBtn" aria-haspopup="menu" aria-expanded="false" title="Mudar status">
+        <span class="av-wrap"><span class="avatar" id="meAvatar"></span><span class="sdot" id="meDot"></span></span>
+        <span class="me-name"><strong id="meName"></strong><small id="meStatus">Online</small></span>
+      </button>
+      <div class="status-menu" id="statusMenu" role="menu" hidden>
+        <button role="menuitem" data-status="online"><span class="sdot s-online"></span><span><strong>Online</strong></span></button>
+        <button role="menuitem" data-status="idle"><span class="sdot s-idle"></span><span><strong>Ausente</strong><small>Também liga sozinho com a aba em segundo plano.</small></span></button>
+        <button role="menuitem" data-status="dnd"><span class="sdot s-dnd"></span><span><strong>Não perturbe</strong><small>Mostra aos outros que você está ocupado.</small></span></button>
+      </div>
+      <button class="icon-btn" id="renameBtn" title="Trocar nome" aria-label="Trocar nome">
+        <svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.21a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>
+      </button>
+    </footer>
+  </aside>
+
+  <!-- Área principal -->
+  <main class="main">
+    <header class="topbar">
+      <button class="icon-btn menu" id="menuBtn" aria-label="Abrir canais">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M3 6h18v2H3zm0 5h18v2H3zm0 5h18v2H3z"/></svg>
+      </button>
+      <span class="topbar-mark" id="topMark">#</span>
+      <h2 id="channelTitle">—</h2>
+      <span class="topbar-sub" id="channelSub"></span>
+      <button class="icon-btn members-toggle" id="membersBtn" aria-pressed="true" title="Membros" aria-label="Mostrar ou esconder a lista de membros">
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm-8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05A4.2 4.2 0 0 1 17 16.5V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
+      </button>
+    </header>
+
+    <div class="main-row">
+    <div class="views">
+
+    <!-- Texto -->
+    <section class="text-view" id="textView">
+      <div class="messages" id="messages" aria-live="polite"></div>
+      <div class="typing" id="typing"></div>
+      <form class="composer" id="composer" autocomplete="off">
+        <textarea id="msgInput" rows="1" placeholder="Mensagem"></textarea>
+        <button type="submit" class="send" aria-label="Enviar">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+        </button>
+      </form>
+    </section>
+
+    <!-- Voz -->
+    <section class="voice-view" id="voiceView" hidden>
+      <div class="stage" id="stage"></div>
+      <div class="voice-empty" id="voiceEmpty">
+        <h3 id="voiceEmptyTitle">Sala de voz</h3>
+        <p id="voiceEmptyText">Entre para falar e compartilhar sua tela com quem estiver aqui.</p>
+        <button class="primary" id="joinVoiceBtn">Entrar na sala</button>
+      </div>
+      <div class="controls" id="controls" hidden>
+        <button class="ctrl" id="muteBtn" aria-pressed="false">
+          <svg class="on" viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
+          <svg class="off" viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M19 11h-2c0 .74-.16 1.43-.43 2.06l1.47 1.47A6.9 6.9 0 0 0 19 11zM15 11.17V5a3 3 0 0 0-5.94-.6L15 10.35v.82zM4.27 3 3 4.27l6 6V11a3 3 0 0 0 4.52 2.59l1.48 1.48A5 5 0 0 1 7 11H5a7 7 0 0 0 6 6.92V21h2v-3.08a6.9 6.9 0 0 0 3.47-1.4L19.73 21 21 19.73 4.27 3z"/></svg>
+          <span>Microfone</span>
+        </button>
+        <button class="ctrl share" id="shareBtn" aria-pressed="false">
+          <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M20 18a2 2 0 0 0 2-2V6a2 2 0 0 0-2-2H4a2 2 0 0 0-2 2v10a2 2 0 0 0 2 2H0v2h24v-2h-4zM4 6h16v10H4V6zm7 2.5L7.5 12H10v3h2v-3h2.5L11 8.5z"/></svg>
+          <span id="shareLabel">Compartilhar tela</span>
+        </button>
+        <button class="ctrl ptt" id="pttBtn" hidden>
+          <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
+          <span>Segure para falar <kbd id="pttKeyLabel">V</kbd></span>
+        </button>
+        <button class="ctrl" id="settingsBtn" title="Voz e áudio" aria-label="Configurações de voz e áudio">
+          <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M19.14 12.94a7.07 7.07 0 0 0 0-1.88l2.03-1.58a.5.5 0 0 0 .12-.63l-1.92-3.32a.5.5 0 0 0-.6-.22l-2.39.96a7 7 0 0 0-1.63-.94l-.36-2.54a.5.5 0 0 0-.5-.42h-3.84a.5.5 0 0 0-.49.42l-.36 2.54a7.3 7.3 0 0 0-1.63.94l-2.39-.96a.5.5 0 0 0-.6.22L2.66 8.85a.5.5 0 0 0 .12.63l2.03 1.58a7.07 7.07 0 0 0 0 1.88l-2.03 1.58a.5.5 0 0 0-.12.63l1.92 3.32c.12.22.39.3.6.22l2.39-.96c.5.38 1.05.7 1.63.94l.36 2.54c.05.24.25.42.49.42h3.84c.25 0 .45-.18.5-.42l.36-2.54a7 7 0 0 0 1.63-.94l2.39.96c.22.08.48 0 .6-.22l1.92-3.32a.5.5 0 0 0-.12-.63l-2.03-1.58zM12 15.6a3.6 3.6 0 1 1 0-7.2 3.6 3.6 0 0 1 0 7.2z"/></svg>
+          <span>Áudio</span>
+        </button>
+        <button class="ctrl leave" id="leaveBtn">
+          <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 9c-1.6 0-3.15.25-4.6.72v3.1c0 .39-.23.74-.56.9-.98.49-1.87 1.12-2.66 1.85a1 1 0 0 1-1.41-.02L.29 13.08a1 1 0 0 1 0-1.41C3.34 8.78 7.46 7 12 7s8.66 1.78 11.71 4.67a1 1 0 0 1 0 1.41l-2.48 2.47a1 1 0 0 1-1.41.02 11.3 11.3 0 0 0-2.67-1.85 1 1 0 0 1-.56-.9v-3.1A15 15 0 0 0 12 9z"/></svg>
+          <span>Sair</span>
+        </button>
+      </div>
+    </section>
+    </div>
+
+    <aside class="members" id="members" aria-label="Membros">
+      <div id="memberList"></div>
+    </aside>
+    </div>
+  </main>
+</div>
+
+<!-- Modal genérico -->
+<div class="modal-back" id="modal" hidden>
+  <form class="modal" id="modalForm">
+    <h3 id="modalTitle"></h3>
+    <p id="modalText"></p>
+    <input id="modalInput" maxlength="40" required>
+    <div class="seg" id="modalType" hidden>
+      <label><input type="radio" name="ctype" value="text" checked> # Texto</label>
+      <label><input type="radio" name="ctype" value="voice"> Voz e tela</label>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="ghost" id="modalCancel">Cancelar</button>
+      <button type="submit" class="primary" id="modalOk">OK</button>
+    </div>
+  </form>
+</div>
+
+<!-- Configurações de voz e áudio -->
+<div class="modal-back" id="settings" hidden>
+  <div class="modal settings" role="dialog" aria-modal="true" aria-labelledby="setTitle">
+    <h3 id="setTitle">Voz e áudio</h3>
+
+    <label class="field" for="micSelect"><span class="lbl">Microfone</span>
+      <select id="micSelect"></select>
+    </label>
+
+    <fieldset class="field">
+      <legend class="lbl">Modo de entrada</legend>
+      <div class="seg">
+        <label><input type="radio" name="inmode" id="inVad" value="vad"> Detecção de voz</label>
+        <label><input type="radio" name="inmode" id="inPtt" value="ptt"> Apertar para falar</label>
+      </div>
+      <div class="ptt-row" id="pttRow">
+        <span>Tecla</span>
+        <button type="button" class="keycap" id="pttKeyBtn">V</button>
+        <small id="pttHint">Clique e aperte a tecla que quer usar.</small>
+      </div>
+    </fieldset>
+
+    <fieldset class="field">
+      <legend class="lbl">Supressão de ruído</legend>
+      <div class="seg three">
+        <label><input type="radio" name="noise" id="nsAi" value="ai"> IA</label>
+        <label><input type="radio" name="noise" id="nsBrowser" value="browser"> Navegador</label>
+        <label><input type="radio" name="noise" id="nsOff" value="off"> Desligada</label>
+      </div>
+      <small class="help">A IA remove teclado, ventilador e barulho da rua. O filtro do navegador é mais leve e menos eficaz.</small>
+    </fieldset>
+
+    <label class="switch" for="musicMode">
+      <input type="checkbox" id="musicMode">
+      <span><strong>Modo música</strong>
+        <small>Desliga todos os filtros e o ganho automático e envia em estéreo a 128 kbps. Bom para instrumentos e música. Use fone de ouvido para não dar eco.</small></span>
+    </label>
+
+    <p class="quality" id="qualityLine"></p>
+
+    <label class="switch" for="soundsOn">
+      <input type="checkbox" id="soundsOn">
+      <span><strong>Sons de entrada e saída</strong>
+        <small>Toca um som e mostra um aviso quando alguém entra, sai ou começa a transmitir na sua sala. Fica em silêncio no modo Não perturbe.</small></span>
+    </label>
+    <div class="field" id="soundVolRow">
+      <label class="vol-line" for="soundVol"><span class="lbl">Volume dos avisos</span><span id="soundVolVal">60%</span></label>
+      <input type="range" id="soundVol" min="10" max="100" step="5">
+    </div>
+
+    <div class="modal-actions"><button type="button" class="primary" id="settingsClose">Pronto</button></div>
+  </div>
+</div>
+
+<div class="toast" id="toast" role="status" hidden></div>
+
+<script src="/socket.io/socket.io.js"></script>
+<script src="app.js"></script>
+</body>
+</html>

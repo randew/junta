@@ -1,0 +1,17 @@
+{
+  "name": "junta",
+  "version": "1.0.0",
+  "description": "Chat em tempo real com canais de texto, salas de voz e compartilhamento de tela",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "engines": {
+    "node": ">=18"
+  },
+  "dependencies": {
+    "@sapphi-red/web-noise-suppressor": "0.3.5",
+    "express": "^4.21.2",
+    "socket.io": "^4.8.1"
+  }
+}
