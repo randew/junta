@@ -140,6 +140,26 @@
   </form>
 </div>
 
+<!-- Escolha da qualidade antes de compartilhar a tela -->
+<div class="modal-back" id="shareModal" hidden>
+  <form class="modal share-modal" id="shareForm">
+    <h3>Compartilhar tela</h3>
+    <p>Escolha o tipo de conteúdo. Para trocar depois, pare e comece de novo.</p>
+    <div class="presets">
+      <label class="preset"><input type="radio" name="preset" value="sharp">
+        <span><strong>Nitidez</strong><small>Código, documentos e planilhas. Até 1440p a 30 fps. Se a rede apertar, mantém o texto legível e reduz a fluidez.</small><em>até 8 Mbps</em></span></label>
+      <label class="preset"><input type="radio" name="preset" value="motion">
+        <span><strong>Movimento</strong><small>Jogos e vídeos. 1080p a 60 fps. Se a rede apertar, mantém a fluidez e reduz a resolução.</small><em>até 8 Mbps</em></span></label>
+      <label class="preset"><input type="radio" name="preset" value="balanced">
+        <span><strong>Equilibrado</strong><small>Uso geral, para internet mais fraca. 1080p a 30 fps.</small><em>até 5 Mbps</em></span></label>
+    </div>
+    <div class="modal-actions">
+      <button type="button" class="ghost" id="shareCancel">Cancelar</button>
+      <button type="submit" class="primary">Escolher tela</button>
+    </div>
+  </form>
+</div>
+
 <!-- Configurações de voz e áudio -->
 <div class="modal-back" id="settings" hidden>
   <div class="modal settings" role="dialog" aria-modal="true" aria-labelledby="setTitle">

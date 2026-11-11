@@ -57,7 +57,12 @@ Clique no seu nome, no canto inferior esquerdo, para escolher Online, Ausente ou
 
 - `server.js`: Express + Socket.IO. Guarda servidores, canais e as últimas 300 mensagens de cada canal **em memória** (somem ao reiniciar) e repassa a sinalização WebRTC entre quem está na mesma sala de voz.
 - `public/app.js`: interface e WebRTC em malha (cada pessoa conecta direto com cada outra). Áudio e tela vão ponta a ponta, sem passar pelo servidor.
-- Tela compartilhada até 1080p/30fps, com áudio da aba ou do sistema quando o navegador permite (Chrome/Edge).
+- Tela compartilhada com três predefinições, escolhidas ao clicar em **Compartilhar tela**:
+  - **Nitidez**: até 1440p a 30 fps, até 8 Mbps, prefere AV1. Ideal para texto.
+  - **Movimento**: 1080p a 60 fps, até 8 Mbps, prefere H.264 (codificação por hardware). Ideal para jogos e vídeos.
+  - **Equilibrado**: 1080p a 30 fps, até 5 Mbps, prefere VP9. Para internet mais fraca.
+  A transmissão já começa com banda alta, sem o borrão dos primeiros segundos. Cada tela mostra no canto a resolução e os fps que estão chegando. O áudio da aba ou do sistema vai junto quando o navegador permite (Chrome/Edge).
+- A banda de cada espectador sai da internet de **quem transmite**. Com várias pessoas assistindo, o upload é dividido entre elas.
 
 ## Limites conhecidos
 

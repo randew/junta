@@ -318,7 +318,7 @@
   // ---------- preferências de áudio ----------
   const CFG_KEY = 'junta:audio';
   const cfg = Object.assign(
-    { mode: 'vad', pttCode: 'KeyV', pttLabel: 'V', noise: 'ai', music: false, deviceId: '', volumes: {}, sounds: true, soundVol: 60 },
+    { mode: 'vad', pttCode: 'KeyV', pttLabel: 'V', noise: 'ai', music: false, deviceId: '', volumes: {}, sounds: true, soundVol: 60, screenPreset: 'sharp' },
     (() => { try { return JSON.parse(localStorage.getItem(CFG_KEY)) || {}; } catch { return {}; } })()
   );
   const saveCfg = () => { try { localStorage.setItem(CFG_KEY, JSON.stringify(cfg)); } catch {} };
@@ -424,6 +424,51 @@
     });
   }
 
+  // ---------- transmissão de tela: predefinições, banda e codecs ----------
+  const PRESETS = {
+    sharp:    { label: 'Nitidez',     w: 2560, h: 1440, fps: 30, kbps: 8000, hint: 'detail', degrade: 'maintain-resolution', codecs: ['AV1', 'VP9', 'H264', 'VP8'] },
+    motion:   { label: 'Movimento',   w: 1920, h: 1080, fps: 60, kbps: 8000, hint: 'motion', degrade: 'maintain-framerate',  codecs: ['H264', 'VP9', 'AV1', 'VP8'] },
+    balanced: { label: 'Equilibrado', w: 1920, h: 1080, fps: 30, kbps: 5000, hint: 'detail', degrade: 'balanced',            codecs: ['VP9', 'AV1', 'H264', 'VP8'] },
+  };
+  if (!PRESETS[cfg.screenPreset]) cfg.screenPreset = 'sharp';
+  const preset = () => PRESETS[S.screenPreset || cfg.screenPreset];
+
+  // Começar já com banda alta (sem os ~15 s de imagem borrada do início) e permitir mais que o teto padrão.
+  // Assim como no Opus, o lado que envia segue o que está no SDP recebido.
+  const VIDEO_BW = 'x-google-start-bitrate=2500;x-google-min-bitrate=300;x-google-max-bitrate=12000';
+  function tuneVideo(sdp) {
+    const parts = sdp.split(/\r\n(?=m=)/);
+    return parts.map((sec) => {
+      if (!sec.startsWith('m=video')) return sec;
+      const lines = sec.split('\r\n');
+      const pts = [];
+      for (const l of lines) { const m = l.match(/^a=rtpmap:(\d+) (VP8|VP9|AV1|H264)\/90000/i); if (m) pts.push(m[1]); }
+      for (const pt of pts) {
+        const fi = lines.findIndex((l) => l.startsWith(`a=fmtp:${pt} `));
+        if (fi >= 0) { if (!lines[fi].includes('x-google-start-bitrate')) lines[fi] += ';' + VIDEO_BW; }
+        else { const ri = lines.findIndex((l) => l.startsWith(`a=rtpmap:${pt} `)); lines.splice(ri + 1, 0, `a=fmtp:${pt} ${VIDEO_BW}`); }
+      }
+      return lines.join('\r\n');
+    }).join('\r\n');
+  }
+
+  // Ordena os codecs da transmissão: o melhor que os dois lados suportam vence
+  function preferCodecs(pc, sender) {
+    try {
+      const tr = pc.getTransceivers().find((t) => t.sender === sender);
+      const caps = RTCRtpReceiver.getCapabilities?.('video')?.codecs;
+      if (!tr?.setCodecPreferences || !caps) return;
+      const order = preset().codecs;
+      const rank = (c) => { const i = order.indexOf(c.mimeType.split('/')[1].toUpperCase()); return i < 0 ? 99 : i; };
+      const main = caps.filter((c) => rank(c) < 99);
+      const extra = caps.filter((c) => rank(c) === 99); // rtx, red, ulpfec: mantidos
+      // dentro do mesmo codec, VP9 perfil 0 e H264 "high" primeiro (mais compatível / mais eficiente)
+      const sub = (c) => (/profile-id=0/.test(c.sdpFmtpLine || '') || /profile-level-id=64/.test(c.sdpFmtpLine || '') ? 0 : 1);
+      main.sort((a, b) => rank(a) - rank(b) || sub(a) - sub(b));
+      tr.setCodecPreferences([...main, ...extra]);
+    } catch (e) { console.warn('preferência de codec ignorada', e); }
+  }
+
   async function tuneSenders(p) {
     for (const s of p.pc.getSenders()) {
       if (!s.track) continue;
@@ -437,8 +482,10 @@
           enc.priority = isScreen ? 'medium' : 'high';
           enc.networkPriority = isScreen ? 'medium' : 'high';
         } else {
-          enc.maxBitrate = 2_500_000; enc.priority = 'low'; enc.networkPriority = 'low';
-          prm.degradationPreference = 'maintain-resolution';
+          const pr = preset();
+          enc.maxBitrate = pr.kbps * 1000; enc.maxFramerate = pr.fps; enc.scaleResolutionDownBy = 1;
+          enc.priority = 'medium'; enc.networkPriority = 'medium'; // a voz continua com prioridade alta
+          prm.degradationPreference = pr.degrade;
         }
         await s.setParameters(prm);
       } catch {}
@@ -539,6 +586,7 @@
     t.append(el('span', 'tag live-tag', 'AO VIVO'));
     if (stream) {
       const v = document.createElement('video'); v.autoplay = true; v.playsInline = true; v.muted = true; // o áudio da tela toca num elemento separado
+      const q = el('span', 'qbadge'); q.hidden = true; t.append(q);
       v.srcObject = stream; t.append(v);
     } else {
       t.append(el('div', 'waiting', 'Conectando à transmissão…'));
@@ -559,6 +607,18 @@
     }
     return t;
   }
+
+  // Atualiza o selo "1440p · 30 fps" das telas a cada segundo
+  setInterval(() => {
+    for (const v of document.querySelectorAll('.tile.screen video')) {
+      const q = v.parentElement.querySelector('.qbadge'); if (!q || !v.videoHeight) continue;
+      const frames = v.getVideoPlaybackQuality?.().totalVideoFrames ?? 0;
+      const now = performance.now();
+      const fps = v._lf != null ? Math.round(((frames - v._lf) * 1000) / (now - v._lt)) : null;
+      v._lf = frames; v._lt = now;
+      q.textContent = `${v.videoHeight}p` + (fps != null ? ` · ${fps} fps` : ''); q.hidden = false;
+    }
+  }, 1000);
 
   // ---------- voz: entrar, sair, mudo, apertar para falar ----------
   $('joinVoiceBtn').onclick = () => joinVoice(keyOf(S.serverId, S.channelId));
@@ -737,34 +797,53 @@
   }, true);
   syncSettingsUI();
 
-  async function toggleScreen() {
+  // Clique em "Compartilhar tela": primeiro escolhe a predefinição, depois a tela
+  function toggleScreen() {
     if (S.screen) { stopScreen(); return; }
     if (!navigator.mediaDevices?.getDisplayMedia) { toast('Este navegador não permite compartilhar tela. Use Chrome, Edge ou Firefox no computador.'); return; }
+    const r = document.querySelector(`input[name=preset][value="${cfg.screenPreset}"]`); if (r) r.checked = true;
+    $('shareModal').hidden = false; r?.focus();
+  }
+  $('shareCancel').onclick = () => { $('shareModal').hidden = true; };
+  $('shareModal').addEventListener('keydown', (e) => { if (e.key === 'Escape') $('shareModal').hidden = true; });
+  $('shareModal').addEventListener('click', (e) => { if (e.target === $('shareModal')) $('shareModal').hidden = true; });
+  $('shareForm').addEventListener('submit', (e) => {
+    e.preventDefault();
+    cfg.screenPreset = document.querySelector('input[name=preset]:checked')?.value || 'sharp'; saveCfg();
+    $('shareModal').hidden = true;
+    startScreen(); // ainda dentro do clique: o navegador exige um gesto do usuário
+  });
+
+  async function startScreen() {
+    S.screenPreset = cfg.screenPreset;
+    const pr = preset();
     try {
       S.screen = await navigator.mediaDevices.getDisplayMedia({
-        video: { frameRate: { ideal: 30 }, width: { max: 1920 }, height: { max: 1080 } },
+        video: { frameRate: { ideal: pr.fps, max: pr.fps }, width: { ideal: pr.w, max: pr.w }, height: { ideal: pr.h, max: pr.h } },
         audio: { echoCancellation: false, noiseSuppression: false, autoGainControl: false, channelCount: 2, sampleRate: 48000 },
         systemAudio: 'include',
       });
     } catch { return; } // cancelou a escolha
     const vt = S.screen.getVideoTracks()[0];
-    if (vt) { vt.contentHint = 'detail'; vt.onended = () => stopScreen(); }
+    if (vt) { vt.contentHint = pr.hint; vt.onended = () => stopScreen(); }
     S.screen.getAudioTracks().forEach((t) => (t.contentHint = 'music'));
     for (const p of Object.values(S.peers)) addScreenTo(p);
     $('shareBtn').setAttribute('aria-pressed', 'true'); $('shareLabel').textContent = 'Parar transmissão';
     socket.emit('voice-update', { sharing: true });
+    toast(`Transmitindo em ${pr.label}: até ${pr.h}p, ${pr.fps} fps.`);
   }
 
   function addScreenTo(p) {
     if (!S.screen) return;
     p.screenSenders = S.screen.getTracks().map((t) => p.pc.addTrack(t, S.screen));
+    for (const snd of p.screenSenders) if (snd.track?.kind === 'video') preferCodecs(p.pc, snd);
   }
 
   function stopScreen(silent) {
     if (!S.screen) return;
     S.screen.getTracks().forEach((t) => t.stop());
     for (const p of Object.values(S.peers)) { (p.screenSenders || []).forEach((s) => { try { p.pc.removeTrack(s); } catch {} }); p.screenSenders = []; }
-    S.screen = null;
+    S.screen = null; S.screenPreset = null;
     $('shareBtn').setAttribute('aria-pressed', 'false'); $('shareLabel').textContent = 'Compartilhar tela';
     if (!silent) socket.emit('voice-update', { sharing: false });
   }
@@ -833,7 +912,7 @@
         const collision = d.type === 'offer' && (p.makingOffer || pc.signalingState !== 'stable');
         p.ignoreOffer = !p.polite && collision;
         if (p.ignoreOffer) return;
-        await pc.setRemoteDescription({ type: d.type, sdp: tuneOpus(d.sdp) });
+        await pc.setRemoteDescription({ type: d.type, sdp: tuneVideo(tuneOpus(d.sdp)) });
         if (d.type === 'offer') { await pc.setLocalDescription(); socket.emit('signal', { to: from, data: { description: pc.localDescription } }); }
         tuneSenders(p);
       } else if (data.candidate) {
