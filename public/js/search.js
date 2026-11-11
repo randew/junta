@@ -25,7 +25,7 @@ async function runSearch() {
   box.replaceChildren();
   if (!results.length) { box.append(el('p', 'side-empty', 'Nada encontrado. Tente outras palavras ou "de:usuario" para filtrar por pessoa.')); return; }
   box.append(el('p', 'search-count', `${results.length === 25 ? 'Os 25 mais recentes' : results.length + (results.length === 1 ? ' resultado' : ' resultados')}`));
-  for (const { key, msg } of results) {
+  for (const { key, msg, rootSeq } of results) {
     const card = el('button', 'sresult'); card.type = 'button';
     const sv = isDmKey(key) ? null : key.split('/')[0];
     const where = isDmKey(key) ? '@' + userName(dmOther(key), null) : '#' + (S.servers.find((s) => s.id === sv)?.channels.find((c) => c.id === key.split('/')[1])?.name || key);
@@ -34,7 +34,12 @@ async function runSearch() {
     const body = el('div', 'sr-body'); renderRich(msg.text || (msg.att.length ? '📎 anexo' : ''), body);
     highlightTerms(body, q);
     card.append(head, body);
-    card.onclick = (e) => { if (e.target.closest('a, .mention, .spoiler')) return; jumpTo(key, msg.seq, msg.id); };
+    if (msg.threadRoot) head.append(el('span', 'sr-thread', 'na thread'));
+    card.onclick = (e) => {
+      if (e.target.closest('a, .mention, .spoiler')) return;
+      if (msg.threadRoot) { jumpTo(key, rootSeq, msg.threadRoot); setTimeout(() => openThread(msg.threadRoot, msg.id), 400); } // resposta numa thread: vai até a mensagem de origem e abre a conversa
+      else jumpTo(key, msg.seq, msg.id);
+    };
     box.append(card);
   }
 }

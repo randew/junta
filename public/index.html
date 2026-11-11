@@ -83,6 +83,9 @@
         <svg viewBox="0 0 24 24" width="16" height="16" aria-hidden="true"><path fill="currentColor" d="M15.5 14h-.79l-.28-.27A6.47 6.47 0 0 0 16 9.5 6.5 6.5 0 1 0 9.5 16a6.47 6.47 0 0 0 4.23-1.57l.27.28v.79l5 4.99L20.49 19l-4.99-5zm-6 0A4.5 4.5 0 1 1 14 9.5 4.5 4.5 0 0 1 9.5 14z"/></svg>
         <input id="searchInput" type="search" placeholder="Buscar" aria-label="Buscar mensagens (Ctrl+K)" autocomplete="off">
       </div>
+      <button class="icon-btn" id="pinsBtn" title="Mensagens fixadas" aria-label="Mensagens fixadas" aria-expanded="false" hidden>
+        <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M16 9V4h1a1 1 0 0 0 0-2H7a1 1 0 0 0 0 2h1v5a3 3 0 0 1-3 3v2h5.97v7l1 1 1-1v-7H19v-2a3 3 0 0 1-3-3z"/></svg>
+      </button>
       <button class="icon-btn members-toggle" id="membersBtn" aria-pressed="true" title="Membros" aria-label="Mostrar ou esconder a lista de membros">
         <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M16 11a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm-8 0a3 3 0 1 0 0-6 3 3 0 0 0 0 6zm0 2c-2.33 0-7 1.17-7 3.5V19h14v-2.5C15 14.17 10.33 13 8 13zm8 0c-.29 0-.62.02-.97.05A4.2 4.2 0 0 1 17 16.5V19h6v-2.5c0-2.33-4.67-3.5-7-3.5z"/></svg>
       </button>
@@ -118,6 +121,7 @@
         </button>
         <input type="file" id="fileInput" multiple hidden>
         <textarea id="msgInput" rows="1" placeholder="Mensagem"></textarea>
+        <button type="button" class="icon-btn gif-btn" id="gifBtn" title="GIFs" aria-label="Enviar um GIF">GIF</button>
         <button type="button" class="icon-btn emoji-btn" id="emojiBtn" title="Emojis" aria-label="Inserir emoji">
           <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm-3.5-9A1.5 1.5 0 1 0 7 9.5 1.5 1.5 0 0 0 8.5 11zm7 0A1.5 1.5 0 1 0 14 9.5a1.5 1.5 0 0 0 1.5 1.5zM12 17.5a5.5 5.5 0 0 0 5.1-3.5H6.9a5.5 5.5 0 0 0 5.1 3.5z"/></svg>
         </button>
@@ -162,6 +166,10 @@
           <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M12 14a3 3 0 0 0 3-3V5a3 3 0 0 0-6 0v6a3 3 0 0 0 3 3zm5-3a5 5 0 0 1-10 0H5a7 7 0 0 0 6 6.92V21h2v-3.08A7 7 0 0 0 19 11h-2z"/></svg>
           <span>Segure para falar <kbd id="pttKeyLabel">V</kbd></span>
         </button>
+        <button class="ctrl" id="soundBtn" aria-expanded="false" title="Soundboard: tocar um som para a sala">
+          <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M3 9v6h4l5 5V4L7 9H3zm13.5 3A4.5 4.5 0 0 0 14 7.97v8.05A4.47 4.47 0 0 0 16.5 12zM14 3.23v2.06a7 7 0 0 1 0 13.42v2.06a9 9 0 0 0 0-17.54z"/></svg>
+          <span>Sons</span>
+        </button>
         <button class="ctrl" id="chatBtn" aria-pressed="false" title="Abrir um canal de texto ao lado da sala">
           <svg viewBox="0 0 24 24" width="22" height="22"><path fill="currentColor" d="M20 2H4a2 2 0 0 0-2 2v18l4-4h14a2 2 0 0 0 2-2V4a2 2 0 0 0-2-2zm0 14H5.17L4 17.17V4h16v12zM7 9h10v2H7zm0-3h10v2H7zm0 6h7v2H7z"/></svg>
           <span>Chat</span>
@@ -188,6 +196,23 @@
         <button type="button" class="icon-btn" id="searchClose" title="Fechar busca" aria-label="Fechar busca">×</button>
       </header>
       <div id="searchResults"></div>
+    </aside>
+    <aside class="search-panel thread-panel" id="threadPanel" aria-label="Thread" hidden>
+      <header class="sp-head">
+        <h3><span class="thread-ico" aria-hidden="true">💬</span> Thread <small id="threadWhere"></small></h3>
+        <button type="button" class="icon-btn" id="threadClose" title="Fechar a thread (Esc)" aria-label="Fechar a thread">×</button>
+      </header>
+      <div class="thread-msgs" id="threadMsgs" aria-live="polite"></div>
+      <p class="no-send" id="threadNoSend" hidden>Você não tem permissão para responder neste canal.</p>
+      <form class="composer thread-composer" id="threadForm" autocomplete="off">
+        <textarea id="threadInput" rows="1" placeholder="Responder na thread"></textarea>
+        <button type="button" class="icon-btn emoji-btn" id="threadEmojiBtn" title="Emojis" aria-label="Inserir emoji">
+          <svg viewBox="0 0 24 24" width="20" height="20"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm-3.5-9A1.5 1.5 0 1 0 7 9.5 1.5 1.5 0 0 0 8.5 11zm7 0A1.5 1.5 0 1 0 14 9.5a1.5 1.5 0 0 0 1.5 1.5zM12 17.5a5.5 5.5 0 0 0 5.1-3.5H6.9a5.5 5.5 0 0 0 5.1 3.5z"/></svg>
+        </button>
+        <button type="submit" class="send" aria-label="Enviar na thread">
+          <svg viewBox="0 0 24 24" width="18" height="18"><path fill="currentColor" d="M2 21l21-9L2 3v7l15 2-15 2z"/></svg>
+        </button>
+      </form>
     </aside>
     </div>
   </main>
@@ -284,6 +309,7 @@
       <button type="button" role="tab" data-ss-tab="general" aria-selected="true">Geral</button>
       <button type="button" role="tab" data-ss-tab="channels" aria-selected="false">Canais</button>
       <button type="button" role="tab" data-ss-tab="roles" aria-selected="false">Cargos</button>
+      <button type="button" role="tab" data-ss-tab="expr" aria-selected="false">Emojis e sons</button>
     </div>
     <div id="ssGeneral" class="ss-section">
       <div class="ss-icon-row">
@@ -325,6 +351,22 @@
       </div>
       <p class="help">✕ Negar · / Herdar (vale o que o cargo já permite) · ✓ Permitir. Quando cargos discordam, quem tem algum cargo com "Permitir" pode.</p>
     </div>
+    <div id="ssExpr" class="ss-section" hidden>
+      <div class="expr-head">
+        <div><strong>Emojis</strong> <small class="help" id="emojiCount"></small></div>
+        <button type="button" class="ghost-btn" id="emojiAdd">+ Enviar emoji</button>
+        <input type="file" id="emojiFile" accept="image/png,image/jpeg,image/webp,image/gif" hidden>
+      </div>
+      <p class="help">Use nas mensagens e reações digitando <code>:nome:</code> ou pelo seletor de emojis. PNG, JPG, WEBP ou GIF (animado), até 512 KB.</p>
+      <div class="expr-grid" id="emojiList"></div>
+      <div class="expr-head">
+        <div><strong>Soundboard</strong> <small class="help" id="soundCount"></small></div>
+        <button type="button" class="ghost-btn" id="soundAdd">+ Enviar som</button>
+        <input type="file" id="soundFile" accept="audio/*,.mp3,.ogg,.wav,.webm,.m4a" hidden>
+      </div>
+      <p class="help">Sons curtos (até 6 segundos e 1 MB) que quem está na sala de voz toca pelo botão <strong>Sons</strong>.</p>
+      <div class="sound-list" id="soundList"></div>
+    </div>
     <div id="ssRoles" class="ss-section" hidden>
       <div class="roles-layout">
         <div class="roles-side">
@@ -341,6 +383,16 @@
 
 <!-- Seletor de emojis -->
 <div class="emoji-picker" id="emojiPicker" role="dialog" aria-label="Emojis" hidden></div>
+<div class="pins-pop" id="pinsPop" role="dialog" aria-label="Mensagens fixadas" hidden></div>
+<div class="gif-panel" id="gifPanel" role="dialog" aria-label="GIFs" hidden>
+  <div class="gif-top">
+    <div class="gif-tabs" role="tablist"><button type="button" role="tab" data-gif-tab="search" aria-selected="true">Buscar</button><button type="button" role="tab" data-gif-tab="fav" aria-selected="false">Favoritos ★</button></div>
+    <input type="search" id="gifSearch" placeholder="Buscar GIFs" aria-label="Buscar GIFs" autocomplete="off">
+  </div>
+  <div class="gif-grid" id="gifGrid"></div>
+  <div class="gif-foot" id="gifFoot"></div>
+</div>
+<div class="sound-pop" id="soundPop" role="dialog" aria-label="Soundboard" hidden></div>
 
 <!-- Nova conversa direta -->
 <div class="modal-back" id="dmPick" hidden>
@@ -374,6 +426,7 @@
       <button type="button" role="tab" data-admin-tab="backups" aria-selected="false">Backups</button>
       <button type="button" role="tab" data-admin-tab="turn" aria-selected="false">TURN</button>
       <button type="button" role="tab" data-admin-tab="theme" aria-selected="false">Tema</button>
+      <button type="button" role="tab" data-admin-tab="gifs" aria-selected="false">GIFs</button>
     </div>
     <div id="adminUsers">
       <p class="help">Redefinir gera uma senha temporária para você passar à pessoa. Remover tira o acesso, mas mantém as mensagens; dá para restaurar.</p>
@@ -385,6 +438,17 @@
       <div class="admin-list" id="backupList"></div>
       <p class="help">Para restaurar: feche o Junta, copie o arquivo escolhido para <code>dados/junta.db</code> (substituindo) e copie o conteúdo de <code>arquivos</code> para <code>dados</code>.</p>
       <button type="button" class="ghost-btn" id="backupNow">Fazer backup agora</button>
+    </div>
+    <div id="adminGifs" hidden>
+      <p class="help">A busca de GIFs usa o <strong>KLIPY</strong> (ou o GIPHY). Crie uma chave grátis em <code>partner.klipy.com</code> → <em>Add Platform</em> e cole aqui. A chave fica só no servidor do Junta.</p>
+      <p class="turn-status" id="gifStatus"></p>
+      <form class="field" id="gifForm">
+        <label class="lbl" for="gifProvider">Serviço</label>
+        <select id="gifProvider"><option value="klipy">KLIPY</option><option value="giphy">GIPHY</option></select>
+        <label class="lbl" for="gifKey">Chave (API key)</label>
+        <div class="ss-inline"><input id="gifKey" class="text-in" autocomplete="off" spellcheck="false" placeholder="cole a chave aqui"><button type="submit" class="primary">Salvar e testar</button></div>
+      </form>
+      <button type="button" class="ghost" id="gifRemove" hidden>Desligar a busca de GIFs</button>
     </div>
     <div id="adminTheme" hidden>
       <label class="switch" for="themeNoite">
@@ -506,6 +570,16 @@
       <small class="help" id="connEmpty">Entre numa sala para ver como você está conectado a cada pessoa.</small>
     </div>
 
+    <label class="switch" for="sbOn">
+      <input type="checkbox" id="sbOn">
+      <span><strong>Ouvir o soundboard</strong>
+        <small>Toca os sons que as pessoas da sala escolhem no botão Sons.</small></span>
+    </label>
+    <div class="field" id="sbVolRow">
+      <label class="vol-line" for="sbVol"><span class="lbl">Volume do soundboard</span><span id="sbVolVal">70%</span></label>
+      <input type="range" id="sbVol" min="5" max="100" step="5">
+    </div>
+
     <div class="modal-actions"><button type="button" class="primary" id="settingsClose">Pronto</button></div>
   </div>
 </div>
@@ -528,6 +602,9 @@
 <script src="js/search.js"></script>
 <script src="js/voice.js"></script>
 <script src="js/panels.js"></script>
+<script src="js/thread.js"></script>
+<script src="js/expressions.js"></script>
+<script src="js/gifs.js"></script>
 <script src="js/profile.js"></script>
 <script src="js/admin.js"></script>
 <script src="js/events.js"></script>

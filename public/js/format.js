@@ -16,6 +16,7 @@ const INLINE = new RegExp([
   '<(?<angle>https?://[^\\s>]+)>',
   '(?<url>https?://[^\\s<]+[^\\s<.,;:!?)\\]"\'])',
   '(?<![\\w@])@(?<mention>[a-zA-Z0-9_.-]{3,24})',
+  ':(?<cemo>[a-z0-9_]{2,32}):',
 ].join('|'), 'g');
 
 const userByUsername = (name) => { const n = name.toLowerCase(); for (const u of S.users.values()) if (u.username.toLowerCase() === n) return u; return null; };
@@ -43,6 +44,10 @@ function inline(text, parent, depth = 0) {
     else if (g.ital || g.ital2) nest('em', null, g.ital || g.ital2);
     else if (g.angle) parent.append(link(g.angle, g.angle));
     else if (g.url) parent.append(link(g.url, g.url));
+    else if (g.cemo) {
+      const em = customEmoji(g.cemo);
+      if (em) parent.append(customEmojiImg(em)); else parent.append(m[0]);
+    }
     else if (g.mention && /^(todos|everyone)$/i.test(g.mention)) {
       parent.append(el('span', 'mention all', '@todos'));
     }
@@ -110,12 +115,13 @@ function openEmojiPicker(anchor, onPick) {
   if (!pk.hidden && pickerAnchor === anchor) { closeEmojiPicker(); return; }
   pickerDone = onPick; pickerAnchor = anchor;
   pk.replaceChildren();
-  const groups = recentEmojis().length ? { 'Usados recentemente': recentEmojis().join(' '), ...EMOJIS } : EMOJIS;
+  const recent = recentEmojis().filter((e) => !/^:/.test(e) || customEmoji(e.slice(1, -1)));
+  const groups = { ...(recent.length ? { 'Usados recentemente': recent.join(' ') } : {}), ...customEmojiGroups(), ...EMOJIS };
   for (const [label, list] of Object.entries(groups)) {
     pk.append(el('div', 'ep-label', label));
     const grid = el('div', 'ep-grid');
     for (const e of list.split(' ')) {
-      const b = el('button', 'ep-btn', e); b.type = 'button'; b.setAttribute('aria-label', e);
+      const b = el('button', 'ep-btn'); b.append(emojiNode(e)); b.type = 'button'; b.setAttribute('aria-label', e); b.title = /^:/.test(e) ? e : '';
       b.onclick = () => { rememberEmoji(e); const f = pickerDone; closeEmojiPicker(); f?.(e); };
       grid.append(b);
     }
@@ -134,3 +140,49 @@ document.addEventListener('mousedown', (e) => {
   if (!pk.hidden && !pk.contains(e.target) && !pickerAnchor?.contains(e.target)) closeEmojiPicker();
 });
 document.addEventListener('keydown', (e) => { if (e.key === 'Escape' && !$('emojiPicker').hidden) { const a = pickerAnchor; closeEmojiPicker(); a?.focus?.(); } });
+
+// ---------- emojis personalizados (por servidor) ----------
+// :nome: usa o emoji do servidor aberto; numa conversa direta, o de qualquer servidor
+function customEmoji(name) {
+  const here = !S.home && S.servers.find((s) => s.id === S.serverId);
+  const pickIn = (s) => s?.emojis?.find((e) => e.name === name);
+  return pickIn(here) || (S.home ? S.servers.map(pickIn).find(Boolean) : null) || null;
+}
+function customEmojiImg(em) {
+  const img = el('img', 'cemoji'); img.src = '/emojis/' + em.file; img.alt = `:${em.name}:`; img.title = `:${em.name}:`; img.loading = 'lazy';
+  img.draggable = false; return img;
+}
+// um emoji comum (texto) ou personalizado (:nome:) pronto para pôr na tela
+function emojiNode(e) {
+  const m = /^:([a-z0-9_]{2,32}):$/.exec(e);
+  const em = m && customEmoji(m[1]);
+  return em ? customEmojiImg(em) : document.createTextNode(e);
+}
+// grupos do seletor: os do servidor aberto (ou de todos, nas conversas diretas)
+function customEmojiGroups() {
+  const out = {};
+  const list = S.home ? S.servers : S.servers.filter((s) => s.id === S.serverId);
+  for (const s of list) if (s.emojis?.length) out[s.name] = s.emojis.map((e) => `:${e.name}:`).join(' ');
+  return out;
+}
+
+// ---------- GIFs nas mensagens ----------
+// uma mensagem que é só o endereço de um GIF aparece como imagem
+const GIF_HOSTS = /(^|\.)(klipy\.com|giphy\.com|tenor\.com)$/i;
+function isGifUrl(text) {
+  const t = String(text).trim();
+  if (!/^https:\/\/\S+$/.test(t)) return false;
+  try { const u = new URL(t); return GIF_HOSTS.test(u.hostname) || /\.(gif|webp)$/i.test(u.pathname); } catch { return false; }
+}
+function gifNode(url) {
+  const box = el('div', 'gif-msg');
+  const img = el('img'); img.src = url.trim(); img.alt = 'GIF'; img.loading = 'lazy'; img.referrerPolicy = 'no-referrer';
+  img.onload = () => typeof keepBottom === 'function' && keepBottom();
+  img.onerror = () => { box.replaceChildren(link(url, url)); };
+  const fav = el('button', 'icon-btn gif-fav', '★'); fav.type = 'button';
+  const sync = () => { const on = gifFavs.has(url.trim()); fav.classList.toggle('on', on); fav.title = on ? 'Tirar dos favoritos' : 'Guardar nos favoritos'; fav.setAttribute('aria-label', fav.title); };
+  sync();
+  fav.onclick = (e) => { e.stopPropagation(); toggleGifFav({ url: url.trim(), preview: url.trim() }).then(sync); };
+  box.append(img, fav);
+  return box;
+}

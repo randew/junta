@@ -9,7 +9,12 @@ const ICON = {
   react: '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M12 2a10 10 0 1 0 10 10A10 10 0 0 0 12 2zm0 18a8 8 0 1 1 8-8 8 8 0 0 1-8 8zm-3.5-9A1.5 1.5 0 1 0 7 9.5 1.5 1.5 0 0 0 8.5 11zm7 0A1.5 1.5 0 1 0 14 9.5a1.5 1.5 0 0 0 1.5 1.5zM12 17.5a5.5 5.5 0 0 0 5.1-3.5H6.9a5.5 5.5 0 0 0 5.1 3.5z"/></svg>',
   edit: '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M3 17.25V21h3.75L17.81 9.94l-3.75-3.75L3 17.25zm17.71-10.21a1 1 0 0 0 0-1.41l-2.34-2.34a1 1 0 0 0-1.41 0l-1.83 1.83 3.75 3.75 1.83-1.83z"/></svg>',
   del: '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M6 19a2 2 0 0 0 2 2h8a2 2 0 0 0 2-2V7H6v12zM19 4h-3.5l-1-1h-5l-1 1H5v2h14V4z"/></svg>',
+  thread: '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M4 4h12a2 2 0 0 1 2 2v7a2 2 0 0 1-2 2H9l-4 3v-3H4a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2zm16 4h1a1 1 0 0 1 1 1v9a1 1 0 0 1-1 1h-1v2l-3-2h-6a1 1 0 0 1-1-1v-1h7a3 3 0 0 0 3-3z"/></svg>',
+  pin: '<svg viewBox="0 0 24 24" width="16" height="16"><path fill="currentColor" d="M16 9V4h1a1 1 0 0 0 0-2H7a1 1 0 0 0 0 2h1v5a3 3 0 0 1-3 3v2h5.97v7l1 1 1-1v-7H19v-2a3 3 0 0 1-3-3z"/></svg>',
 };
+// redesenha a conversa e, se aberta, a thread (as duas usam as mesmas mensagens e ações)
+function rerender() { renderMessages(); if (typeof renderThread === 'function') renderThread(); }
+const canPinHere = () => S.home || canHere(P.MANAGE_MESSAGES);
 const iconBtn = (cls, label, svg, onclick) => { const b = el('button', 'icon-btn ' + cls); b.type = 'button'; b.title = label; b.setAttribute('aria-label', label); b.innerHTML = svg; b.onclick = onclick; return b; };
 
 // ---------- anexos e prévias ----------
@@ -56,7 +61,7 @@ function reactionsNode(m) {
   for (const r of m.reactions) {
     const mine = r.users.includes(S.me.uid);
     const b = el('button', 'react' + (mine ? ' mine' : '')); b.type = 'button';
-    b.append(el('span', 'remoji', r.e), el('span', 'rcount', String(r.users.length)));
+    const em = el('span', 'remoji'); em.append(emojiNode(r.e)); b.append(em, el('span', 'rcount', String(r.users.length)));
     const names = r.users.map((u) => userName(u)).join(', ');
     b.title = `${names} reagiu com ${r.e}`; b.setAttribute('aria-label', `${r.e} ${r.users.length}. ${mine ? 'Clique para tirar a sua reação' : 'Clique para reagir também'}`);
     b.setAttribute('aria-pressed', String(mine));
@@ -80,7 +85,7 @@ function replyQuote(m) {
   return q;
 }
 
-function msgNode(m, prev) {
+function msgNode(m, prev, ctx = {}) {
   const name = userName(m.uid);
   const grouped = !m.reply && prev && prev.uid === m.uid && m.ts - prev.ts < 5 * 60e3 && dayLabel(prev.ts) === dayLabel(m.ts);
   const hitMe = m.uid !== S.me.uid && (mentionsMe(m.text) || m.everyone || m.reply?.uid === S.me.uid);
@@ -99,36 +104,41 @@ function msgNode(m, prev) {
   if (editingId === m.id) {
     const ta = el('textarea', 'edit-box'); ta.value = m.text; ta.rows = 1; ta.setAttribute('aria-label', 'Editar mensagem');
     ta.addEventListener('keydown', (e) => {
-      if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); renderMessages(); }
+      if (e.key === 'Escape') { e.preventDefault(); cancelEdit(); rerender(); }
       else if (e.key === 'Enter' && !e.shiftKey && !e.isComposing) { e.preventDefault(); saveEdit(m, ta.value); }
     });
     ta.addEventListener('input', () => { ta.style.height = 'auto'; ta.style.height = ta.scrollHeight + 'px'; });
     body.append(ta, el('small', 'edit-hint', 'Enter salva · Esc cancela'));
     setTimeout(() => { ta.focus(); ta.setSelectionRange(ta.value.length, ta.value.length); ta.style.height = ta.scrollHeight + 'px'; }, 0);
   } else {
-    if (m.text) renderRich(m.text, body);
+    if (m.text && isGifUrl(m.text)) body.append(gifNode(m.text));
+    else if (m.text) renderRich(m.text, body);
     if (m.edited) { const ed = el('span', 'edited', ' (editado)'); ed.title = `${dayLabel(m.edited)} ${time(m.edited)}`; body.append(ed); }
+    if (m.pinned && !ctx.thread) { const pm = el('span', 'pin-mark', '📌'); pm.title = 'Mensagem fixada'; body.append(pm); }
   }
   row.append(body);
   if (m.att?.length) { const box = el('div', 'atts'); m.att.forEach((a) => box.append(attNode(a))); row.append(box); }
   if (m.embeds?.length && editingId !== m.id) { const box = el('div', 'embeds'); m.embeds.forEach((e) => box.append(embedNode(e))); row.append(box); }
   if (m.reactions?.length) row.append(reactionsNode(m));
+  if (!ctx.thread && m.thread?.n) row.append(threadChip(m));
 
   if (editingId !== m.id) {
     const mine = m.uid === S.me.uid;
     const act = el('div', 'msg-actions');
     if (canHere(P.REACT)) { const rb = iconBtn('', 'Reagir', ICON.react, () => openEmojiPicker(rb, (e) => react(m.id, e))); act.append(rb); }
-    if (canHere(P.SEND)) act.append(iconBtn('', 'Responder', ICON.reply, () => startReply(m)));
+    if (canHere(P.SEND) && !ctx.thread) act.append(iconBtn('', 'Responder', ICON.reply, () => startReply(m)));
+    if (!ctx.thread && (canHere(P.SEND) || m.thread)) act.append(iconBtn('', m.thread ? 'Abrir a thread' : 'Começar uma thread', ICON.thread, () => openThread(m.id)));
+    if (!ctx.thread && canPinHere()) act.append(iconBtn(m.pinned ? 'on' : '', m.pinned ? 'Desafixar' : 'Fixar no canal', ICON.pin, () => togglePin(m)));
     if (mine) act.append(iconBtn('', 'Editar', ICON.edit, () => startEdit(m.id)));
     if (mine || (!S.home && canHere(P.MANAGE_MESSAGES))) {
-      act.append(iconBtn('danger', 'Apagar (Shift+clique apaga sem perguntar)', ICON.del, (e) => { if (e.shiftKey) deleteMessage(m.id); else { confirmDel = m.id; renderMessages(); } }));
+      act.append(iconBtn('danger', 'Apagar (Shift+clique apaga sem perguntar)', ICON.del, (e) => { if (e.shiftKey) deleteMessage(m.id); else { confirmDel = m.id; rerender(); } }));
     }
     row.append(act);
   }
   if (confirmDel === m.id) {
-    const bar = el('div', 'del-confirm'); bar.append(el('span', null, 'Apagar esta mensagem para todos?'));
+    const bar = el('div', 'del-confirm'); bar.append(el('span', null, !ctx.thread && m.thread?.n ? 'Apagar esta mensagem e a thread inteira para todos?' : 'Apagar esta mensagem para todos?'));
     const yes = el('button', 'danger-btn', 'Apagar'); yes.onclick = () => deleteMessage(m.id);
-    const no = el('button', 'ghost', 'Cancelar'); no.onclick = () => { confirmDel = null; renderMessages(); };
+    const no = el('button', 'ghost', 'Cancelar'); no.onclick = () => { confirmDel = null; rerender(); };
     bar.append(no, yes); row.append(bar); setTimeout(() => yes.focus(), 0);
   }
   return row;
@@ -167,7 +177,8 @@ function renderMessages(scroll, anchor) {
   const box = $('messages');
   const keep = !scroll && box.scrollHeight - box.scrollTop; // mantém a posição ao redesenhar
   box.replaceChildren();
-  if (!curKey()) return;
+  $('pinsBtn').hidden = !curKey();
+  if (!curKey()) { if (S.thread) closeThread(); return; }
   if (S.more) box.append(el('div', 'older', S.loadingOlder ? 'Carregando mensagens antigas…' : 'Role para cima para ver mensagens antigas'));
   else box.append(welcomeNode());
   let dividerDone = false;
@@ -191,6 +202,8 @@ function keepBottom() { if (stickBottom && S.atLatest) $('messages').scrollTop =
 // abre um canal ou conversa: no fim, ou em volta de uma mensagem (seq)
 function openText(key, { seq = null, highlight = null } = {}) {
   cancelEdit(); confirmDel = null; cancelReply();
+  if (S.thread && S.thread.key !== key) closeThread();
+  if (pinsKey && pinsKey !== key) closePins();
   S.messages = []; S.more = false; S.atLatest = true; S.lastRead = 0;
   renderMessages(true);
   const done = ({ messages, more, atLatest, lastRead, error }) => {
@@ -251,15 +264,15 @@ $('messages').addEventListener('scroll', () => {
 $('jumpLatest').onclick = () => openText(curKey());
 
 // ---------- ações ----------
-function startEdit(id) { editingId = id; confirmDel = null; renderMessages(); }
+function startEdit(id) { editingId = id; confirmDel = null; rerender(); }
 function cancelEdit() { editingId = null; }
 function saveEdit(m, text) {
   const t = text.trim();
-  if (t === m.text) { cancelEdit(); renderMessages(); return; }
-  if (!t && !m.att?.length) { confirmDel = m.id; cancelEdit(); renderMessages(); return; }
+  if (t === m.text) { cancelEdit(); rerender(); return; }
+  if (!t && !m.att?.length) { confirmDel = m.id; cancelEdit(); rerender(); return; }
   socket.emit('message-edit', { id: m.id, text: t }, (res) => {
     if (res?.error) return toast(res.error);
-    cancelEdit(); renderMessages(); input.focus();
+    cancelEdit(); rerender(); (m.threadRoot ? $('threadInput') : input).focus();
   });
 }
 function deleteMessage(id) {
@@ -279,6 +292,7 @@ $('replyCancel').onclick = () => { cancelReply(); input.focus(); };
 // ---------- eventos do servidor ----------
 socket.on('message', ({ key, msg }) => {
   if (key !== curKey()) return;
+  if (msg.threadRoot) { threadIncoming(msg); return; } // resposta numa thread: não entra na conversa principal
   if (!S.atLatest) { $('jumpBar').hidden = false; $('jumpText').textContent = 'Há mensagens novas abaixo.'; return; } // vendo mensagens antigas
   const box = $('messages');
   const nearBottom = box.scrollHeight - box.scrollTop - box.clientHeight < 120;
@@ -293,6 +307,7 @@ socket.on('message', ({ key, msg }) => {
 });
 socket.on('message-update', ({ key, msg }) => {
   if (key !== curKey()) return;
+  threadUpdate(msg);
   const i = S.messages.findIndex((x) => x.id === msg.id); if (i < 0) return;
   S.messages[i] = msg;
   // atualiza só esta mensagem quando possível (sem perder o foco nem a rolagem)
@@ -307,6 +322,7 @@ socket.on('message-update', ({ key, msg }) => {
 });
 socket.on('message-delete', ({ key, id }) => {
   if (key !== curKey()) return;
+  threadDelete(id);
   S.messages = S.messages.filter((x) => x.id !== id);
   S.messages.forEach((x) => { if (x.reply?.id === id) x.reply = { id, missing: true }; });
   if (editingId === id) cancelEdit();

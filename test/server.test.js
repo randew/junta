@@ -421,3 +421,99 @@ test('tema de fim de ano: só o dono liga, e todos recebem na hora', async () =>
   await andre.api('POST', '/api/admin/theme', { theme: null });
   await off;
 });
+
+test('threads: respostas ficam fora do canal, contam no contador e avisam quem começou', async () => {
+  await andre.emit('join-text', GERAL); await bia.emit('join-text', GERAL);
+  const root = await bia.emit('message', { key: GERAL, text: 'quem topa jogar hoje?' });
+  const upd = bia.waitFor('message-update', (d) => d.msg.id === root.id && d.msg.thread?.n === 1);
+  const act = bia.waitFor('activity', (a) => a.thread === root.id);
+  const r = await andre.emit('message', { key: GERAL, text: 'eu topo', thread: root.id });
+  assert.equal(r.ok, true);
+  assert.equal((await upd).msg.thread.lastUid, andre.id);
+  assert.deepEqual((await act).mentions, [bia.id], 'quem começou a thread é avisado');
+  const page = await bia.emit('join-text', GERAL);
+  assert.ok(!page.messages.some((m) => m.id === r.id), 'resposta não aparece no canal');
+  assert.equal(page.messages.find((m) => m.id === root.id).thread.n, 1);
+  const th = await caio.emit('thread', { id: root.id });
+  assert.equal(th.root.id, root.id); assert.equal(th.messages[0].text, 'eu topo'); assert.equal(th.messages[0].threadRoot, root.id);
+  // sem thread dentro de thread
+  assert.match((await caio.emit('message', { key: GERAL, text: 'x', thread: r.id })).error, /não existe/);
+  // resposta não conta como não lida para quem não foi mencionado
+  const before = (await caio.emit('hello', {})).unread[GERAL]?.n || 0;
+  await andre.emit('message', { key: GERAL, text: 'mais uma', thread: root.id });
+  await sleep(50);
+  assert.equal((await caio.emit('hello', {})).unread[GERAL]?.n || 0, before);
+  // busca acha a resposta e diz de que thread ela é
+  const found = (await caio.emit('search', { q: 'topo', scope: 'geral' })).results.find((x) => x.msg.id === r.id);
+  assert.equal(found.msg.threadRoot, root.id); assert.equal(found.rootSeq, page.messages.find((m) => m.id === root.id).seq);
+  // apagar a mensagem de origem apaga a thread
+  await bia.emit('message-delete', root.id);
+  assert.match((await caio.emit('thread', { id: root.id })).error, /não encontrada/);
+  assert.equal((await caio.emit('search', { q: 'topo', scope: 'geral' })).results.filter((x) => x.msg.id === r.id).length, 0);
+});
+
+test('mensagens fixadas: quem gerencia mensagens fixa; nas DMs, os dois', async () => {
+  const m = await caio.emit('message', { key: GERAL, text: 'regras do servidor' });
+  assert.match((await caio.emit('pin', { id: m.id, on: true })).error, /permissão/);
+  await caio.emit('join-text', GERAL);
+  const ev = caio.waitFor('pins-changed', (d) => d.id === m.id && d.on);
+  assert.equal((await andre.emit('pin', { id: m.id, on: true })).ok, true);
+  await ev;
+  const list = await caio.emit('pins', GERAL);
+  assert.equal(list.messages[0].id, m.id); assert.equal(list.messages[0].pinned, true); assert.equal(list.canPin, false);
+  await andre.emit('pin', { id: m.id, on: false });
+  assert.equal((await caio.emit('pins', GERAL)).messages.length, 0);
+  // conversa direta
+  const dm = `dm/${Math.min(bia.id, caio.id)}-${Math.max(bia.id, caio.id)}`;
+  const d = await caio.emit('message', { key: dm, text: 'endereço da festa' });
+  assert.equal((await bia.emit('pin', { id: d.id, on: true })).ok, true);
+  assert.equal((await andre.emit('pins', dm)).messages.length, 0, 'quem não está na conversa não vê');
+});
+
+test('emojis personalizados e soundboard: envio com permissão, uso e reprodução na sala', async () => {
+  const png = Buffer.from('iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAYAAAAfFcSJAAAADUlEQVR42mNk+M9QDwADhgGAWjR9awAAAABJRU5ErkJggg==', 'base64');
+  const up = (who, path, buf, fields, type) => { const fd = new FormData(); for (const [k, v] of Object.entries(fields)) fd.append(k, v); fd.append('file', new Blob([buf], { type }), 'f'); return who.api('POST', path, fd); };
+  assert.equal((await up(caio, '/api/servers/geral/emojis', png, { name: 'festa' }, 'image/png')).status, 403);
+  assert.equal((await up(andre, '/api/servers/geral/emojis', png, { name: 'Com Espaço' }, 'image/png')).status, 400);
+  const ok = await up(andre, '/api/servers/geral/emojis', png, { name: 'festa' }, 'image/png');
+  assert.equal(ok.status, 200);
+  assert.equal((await up(andre, '/api/servers/geral/emojis', png, { name: 'festa' }, 'image/png')).status, 400, 'nome repetido');
+  const srv = (await caio.emit('hello', {})).servers.find((s) => s.id === 'geral');
+  assert.equal(srv.emojis[0].name, 'festa');
+  assert.equal((await fetch(`${app.base}/emojis/${srv.emojis[0].file}`)).status, 401, 'arquivo só com login');
+  // reação com emoji do servidor
+  const m = await caio.emit('message', { key: GERAL, text: 'bora :festa:' });
+  const rr = await bia.emit('react', { id: m.id, emoji: ':festa:' }); assert.equal(rr.ok, true, JSON.stringify(rr));
+  assert.match((await bia.emit('react', { id: m.id, emoji: ':naoexiste:' })).error, /inválida/);
+  // som: precisa ser áudio de verdade
+  const wav = Buffer.concat([Buffer.from('RIFF\x24\x00\x00\x00WAVEfmt ', 'latin1'), Buffer.alloc(32)]);
+  assert.equal((await up(andre, '/api/servers/geral/sounds', png, { name: 'x' }, 'audio/wav')).status, 400);
+  assert.equal((await up(andre, '/api/servers/geral/sounds', wav, { name: 'Risada', emoji: '😂' }, 'audio/wav')).status, 200);
+  const sound = (await bia.emit('hello', {})).servers.find((s) => s.id === 'geral').sounds[0];
+  assert.equal(sound.name, 'Risada');
+  assert.match((await bia.emit('sound-play', sound.id)).error, /sala de voz/);
+  // (testes anteriores tiraram "Entrar na voz" do @todos; o dono entra e ouve o próprio som)
+  await andre.emit('voice-join', 'geral/sala-2');
+  const heard = andre.waitFor('sound', (s) => s.id === sound.id);
+  const sp = await andre.emit('sound-play', sound.id); assert.equal(sp.ok, true, JSON.stringify(sp));
+  assert.equal((await heard).by, andre.id);
+  assert.match((await andre.emit('sound-play', sound.id)).error, /Calma/);
+  andre.socket.emit('voice-leave');
+});
+
+test('GIFs: resultados no formato do Tenor, sem anúncios, e favoritos por pessoa', async () => {
+  const { normalize } = require('../lib/gifs');
+  const d = normalize({ next: 'abc', results: [
+    { id: 1, content_description: 'gato', media_formats: { gif: { url: 'https://static.klipy.com/a.gif', dims: [200, 100] }, tinygif: { url: 'https://static.klipy.com/a-t.gif', dims: [100, 50] } } },
+    { id: 2, type: 'ad', media_formats: { gif: { url: 'https://ads.example/x.gif' } } },
+    { id: 3, media_formats: { gif: { url: 'http://inseguro/x.gif' } } },
+  ] });
+  assert.deepEqual(d.items.map((x) => x.id), ['1']);
+  assert.equal(d.items[0].preview, 'https://static.klipy.com/a-t.gif'); assert.equal(d.items[0].w, 200); assert.equal(d.next, 'abc');
+  const none = await bia.api('GET', '/api/gifs/search?q=gato');
+  assert.equal(none.data.configured, false);
+  assert.equal((await bia.api('POST', '/api/gifs/favorites', { url: 'https://static.klipy.com/a.gif' })).status, 200);
+  assert.equal((await bia.api('GET', '/api/gifs/favorites')).data.items[0].url, 'https://static.klipy.com/a.gif');
+  assert.equal((await caio.api('GET', '/api/gifs/favorites')).data.items.length, 0);
+  assert.equal((await bia.api('POST', '/api/admin/gifs', { key: 'x'.repeat(20) })).status, 403);
+});

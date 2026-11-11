@@ -14,11 +14,11 @@ function serverIcon(s, cls = 'rail-ico') {
 
 // abas que esta pessoa pode usar neste servidor
 function ssTabsAllowed(id = ssId) {
-  return { general: canSrv(P.MANAGE_SERVER, id), channels: canSrv(P.MANAGE_CHANNELS, id), roles: canSrv(P.MANAGE_ROLES, id) };
+  return { general: canSrv(P.MANAGE_SERVER, id), channels: canSrv(P.MANAGE_CHANNELS, id), roles: canSrv(P.MANAGE_ROLES, id), expr: canSrv(P.MANAGE_EXPRESSIONS, id) };
 }
 function openServerSettings(id = S.serverId) {
   const ok = ssTabsAllowed(id);
-  if (!ok.general && !ok.channels && !ok.roles) return;
+  if (!ok.general && !ok.channels && !ok.roles && !ok.expr) return;
   ssId = id; $('serverModal').hidden = false;
   showSsTab(ok[ssTab] ? ssTab : Object.keys(ok).find((k) => ok[k]));
 }
@@ -32,7 +32,7 @@ function showSsTab(tab) {
   ssTab = tab;
   const ok = ssTabsAllowed();
   for (const b of document.querySelectorAll('[data-ss-tab]')) { b.hidden = !ok[b.dataset.ssTab]; b.setAttribute('aria-selected', String(b.dataset.ssTab === tab)); }
-  $('ssGeneral').hidden = tab !== 'general'; $('ssChannels').hidden = tab !== 'channels'; $('ssRoles').hidden = tab !== 'roles';
+  $('ssGeneral').hidden = tab !== 'general'; $('ssChannels').hidden = tab !== 'channels'; $('ssRoles').hidden = tab !== 'roles'; $('ssExpr').hidden = tab !== 'expr';
   $('chanPerms').hidden = true; cpKey = null;
   renderServerSettings(true);
 }
@@ -46,6 +46,7 @@ function renderServerSettings(fresh) {
   if (!ok[ssTab]) { const first = Object.keys(ok).find((k) => ok[k]); if (!first) return closeServerSettings(); return showSsTab(first); }
   for (const e of document.querySelectorAll('.ss-owner-only')) e.hidden = !isOwner(); // posição e exclusão: só o dono do Junta
   if (ssTab === 'roles') renderRolesTab();
+  if (ssTab === 'expr') renderExprTab();
   if (cpKey) renderChannelPerms();
   // geral
   const prev = $('ssIcon'); prev.replaceChildren(serverIcon(s, 'ss-ico-img'));

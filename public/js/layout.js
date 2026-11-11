@@ -41,7 +41,7 @@ function renderChannels() {
   if (S.home) { $('serverMenuBtn').hidden = true; renderDmList(box); return; }
   const s = currentServer(); if (!s) return;
   $('serverName').textContent = s.name;
-  $('serverMenuBtn').hidden = !(canSrv(P.MANAGE_SERVER) || canSrv(P.MANAGE_CHANNELS) || canSrv(P.MANAGE_ROLES));
+  $('serverMenuBtn').hidden = !(canSrv(P.MANAGE_SERVER) || canSrv(P.MANAGE_CHANNELS) || canSrv(P.MANAGE_ROLES) || canSrv(P.MANAGE_EXPRESSIONS));
   const manage = canSrv(P.MANAGE_CHANNELS);
   for (const [type, label] of [['text', 'Canais de texto'], ['voice', 'Voz e tela']]) {
     const cat = el('div', 'cat'); cat.append(el('span', null, label));

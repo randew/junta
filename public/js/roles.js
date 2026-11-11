@@ -9,6 +9,7 @@ const PERM_INFO = [
     [P.MANAGE_CHANNELS, 'Gerenciar canais', 'Criar, renomear, reordenar e apagar canais.'],
     [P.MANAGE_ROLES, 'Gerenciar cargos', 'Criar e editar cargos abaixo do seu e dar esses cargos às pessoas.'],
     [P.MANAGE_SERVER, 'Gerenciar servidor', 'Mudar o nome e o ícone do servidor.'],
+    [P.MANAGE_EXPRESSIONS, 'Gerenciar emojis e sons', 'Enviar e apagar os emojis personalizados e os sons do soundboard.'],
   ]],
   ['Mensagens', [
     [P.SEND, 'Enviar mensagens', 'Escrever nos canais de texto.'],
@@ -23,6 +24,7 @@ const PERM_INFO = [
     [P.STREAM, 'Transmitir tela e câmera', ''],
     [P.MUTE_MEMBERS, 'Silenciar pessoas', 'Silenciar alguém para todos na sala.'],
     [P.MOVE_MEMBERS, 'Desconectar pessoas', 'Tirar alguém da sala de voz.'],
+    [P.USE_SOUNDBOARD, 'Usar o soundboard', 'Tocar sons curtos para todos na sala.'],
   ]],
   ['Avançado', [
     [P.ADMIN, 'Administrador', 'Pode tudo neste servidor e ignora as restrições dos canais. Dê com cuidado.'],

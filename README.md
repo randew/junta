@@ -88,6 +88,10 @@ Em **Administração → Tema**, o dono liga o **Noite Feliz** para todo mundo, 
 - **Prévia de links:** links viram um cartão com título, descrição e imagem. Para não gerar prévia, escreva o link entre `<` e `>`. O servidor nunca acessa endereços da sua rede interna ao buscar prévias.
 - **Anexos:** clipe, arrastar para a conversa ou colar uma imagem (Ctrl+V). Até 10 arquivos de 25 MB por mensagem.
 - **Emojis:** botão de carinha na caixa de mensagem.
+- **Emojis personalizados:** cada servidor pode ter os seus (até 60). Use digitando `:nome:` ou pelo seletor de emojis, que mostra os do servidor no topo. Também valem nas reações. Quem tem **Gerenciar emojis e sons** envia em Configurações do servidor → **Emojis e sons** (PNG, JPG, WEBP ou GIF animado, até 512 KB).
+- **Threads:** passe o mouse numa mensagem → balão de conversa para começar uma thread ao lado do canal. As respostas não enchem o canal: a mensagem de origem mostra quantas respostas tem e quando foi a última. Quem começou a thread é avisado das respostas; os outros só se forem mencionados. Esc fecha o painel. Apagar a mensagem de origem apaga a thread.
+- **Mensagens fixadas:** passe o mouse → alfinete para fixar no canal (pede **Gerenciar mensagens**; nas conversas diretas, os dois podem). O 📌 no topo lista as fixadas, com atalho para ir até cada uma. Até 50 por canal.
+- **GIFs:** botão **GIF** na caixa de mensagem. Busca pelo KLIPY (ou GIPHY), depois que o dono cola uma chave grátis em Administração → **GIFs**. A ★ guarda um GIF nos seus favoritos (também direto numa mensagem), e a aba **Favoritos** funciona mesmo sem a busca ligada. Um link de GIF colado na conversa também aparece como imagem.
 
 ## Não lidas e notificações
 
@@ -128,6 +132,8 @@ Cada servidor tem os próprios cargos. Abra a engrenagem ao lado do nome do serv
 
 ## Voz, tela e câmera
 
+- **Soundboard:** na sala, o botão **Sons** toca um som curto para todo mundo da sala (até 6 segundos). Os sons são enviados em Configurações do servidor → **Emojis e sons** por quem tem **Gerenciar emojis e sons**; tocar pede **Usar o soundboard** (vem ligado para todos). Cada pessoa ajusta o volume ou desliga o som do soundboard em **Áudio**.
+
 - **Câmera:** botão **Câmera** dentro da sala (720p a 30 fps). A sua imagem aparece espelhada só para você. Escolha a câmera em **Áudio**.
 - **Compartilhar tela** com três predefinições:
   - **Nitidez**: até 1440p a 30 fps, até 8 Mbps, prefere AV1. Ideal para texto.
@@ -158,6 +164,8 @@ lib/messages.js      histórico, envio, respostas, reações, menções, não li
 lib/channels.js      servidores, canais, mensagens diretas e quem pode ver o quê
 lib/perms.js         cargos e cálculo das permissões
 lib/roles.js         criar, editar, ordenar e dar cargos; permissões por canal
+lib/expressions.js   emojis personalizados e soundboard
+lib/gifs.js          busca de GIFs (KLIPY/GIPHY) e favoritos
 lib/previews.js      prévia de links (com bloqueio da rede interna)
 lib/files.js         anexos e fotos de perfil
 lib/servers.js       criar/apagar servidores e canais, perfil e apelidos

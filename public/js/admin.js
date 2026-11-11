@@ -30,8 +30,8 @@ for (const b of document.querySelectorAll('[data-admin-tab]')) b.onclick = () =>
 function showAdminTab(tab) {
   adminTab = tab;
   for (const b of document.querySelectorAll('[data-admin-tab]')) b.setAttribute('aria-selected', String(b.dataset.adminTab === tab));
-  $('adminUsers').hidden = tab !== 'users'; $('adminBackups').hidden = tab !== 'backups'; $('adminTurn').hidden = tab !== 'turn'; $('adminTheme').hidden = tab !== 'theme';
-  if (tab === 'users') loadAdminUsers(); else if (tab === 'backups') loadBackups(); else if (tab === 'turn') loadTurnUsage(); else renderThemeTab();
+  $('adminUsers').hidden = tab !== 'users'; $('adminBackups').hidden = tab !== 'backups'; $('adminTurn').hidden = tab !== 'turn'; $('adminTheme').hidden = tab !== 'theme'; $('adminGifs').hidden = tab !== 'gifs';
+  if (tab === 'users') loadAdminUsers(); else if (tab === 'backups') loadBackups(); else if (tab === 'turn') loadTurnUsage(); else if (tab === 'gifs') renderGifsTab(); else renderThemeTab();
 }
 
 const ago = (ts) => {

@@ -20,6 +20,8 @@ const messages = require('./lib/messages');
 const servers = require('./lib/servers');
 const voice = require('./lib/voice');
 const roles = require('./lib/roles');
+const expressions = require('./lib/expressions');
+const gifs = require('./lib/gifs');
 const { createTurn } = require('./lib/turn');
 const { createTurnUsage } = require('./lib/turn-usage');
 const { createRealtime } = require('./lib/realtime');
@@ -58,6 +60,8 @@ function start({ port = process.env.PORT || 3000, backups = true, log = console.
   accounts.routes(app, ctx);
   files.routes(app, ctx);
   admin.routes(app, ctx);
+  expressions.routes(app, ctx);
+  gifs.routes(app, ctx);
 
   // servidores de conexão da voz: STUN, e TURN quando configurado (veja lib/turn.js)
   const turn = createTurn(DATA_DIR, log);
@@ -106,6 +110,7 @@ function start({ port = process.env.PORT || 3000, backups = true, log = console.
     servers.register(socket, ctx);
     voice.register(socket, ctx);
     roles.register(socket, ctx);
+    expressions.register(socket, ctx);
 
     socket.on('disconnect', () => {
       ctx.rt.leaveVoice(socket);

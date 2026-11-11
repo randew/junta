@@ -26,7 +26,10 @@ socket.on('read', ({ key, seq }) => {
 socket.on('activity', (a) => {
   if (a.uid === S.me.uid) { if (isDmKey(a.key)) touchDm(a.key, a.ts); return; }
   if (isDmKey(a.key)) touchDm(a.key, a.ts);
-  const mention = a.mentions.includes(S.me.uid) || isDmKey(a.key); // conversa direta conta como menção
+  const mention = a.mentions.includes(S.me.uid) || (isDmKey(a.key) && !a.thread); // conversa direta conta como menção
+  if (a.thread) { // resposta numa thread: só conta se for com você e você não estiver com ela aberta
+    if (!mention || (S.thread?.root.id === a.thread && !document.hidden && document.hasFocus())) return;
+  }
   const looking = a.key === curKey() && !document.hidden && document.hasFocus() && S.atLatest && stickBottom;
   if (!looking) {
     const u = (S.unread[a.key] ||= { n: 0, m: 0 });
